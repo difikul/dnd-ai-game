@@ -3,11 +3,10 @@
  * Implementuje D&D 5e pravidla pro výpočet statistik
  */
 
-import { PrismaClient, Character } from '@prisma/client'
+import { Character } from '@prisma/client'
 import { CharacterStats, CharacterModifiers, CharacterClass } from '../types/dnd.types'
 import { CreateCharacterRequest, UpdateCharacterRequest } from '../types/api.types'
-
-const prisma = new PrismaClient()
+import { prisma } from '../config/database'
 
 // ============================================================================
 // D&D 5e Constants - Hit Dice podle třídy

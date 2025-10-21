@@ -8,9 +8,9 @@ if (!process.env.GEMINI_API_KEY) {
 export const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
 
 // Model configuration
-// Using Gemini 2.5 Flash - Latest stable version (June 2025)
-// Supports: 1M input tokens, 65K output tokens, generateContent method
-export const MODEL_NAME = 'gemini-2.5-flash'
+// Using Gemini 2.0 Flash Experimental - Available in January 2025
+// Fallback if not working: 'gemini-1.5-flash-latest'
+export const MODEL_NAME = 'gemini-2.0-flash-exp'
 
 // Generation config
 export const generationConfig = {

@@ -5,6 +5,9 @@ import morgan from 'morgan'
 import compression from 'compression'
 import testRoutes from './routes/test.routes'
 import characterRoutes from './routes/character.routes'
+import gameRoutes from './routes/game.routes'
+import diceRoutes from './routes/dice.routes'
+import saveRoutes from './routes/save.routes'
 
 const app = express()
 
@@ -40,6 +43,9 @@ app.get('/health', (req, res) => {
 // API routes
 app.use('/api/test', testRoutes)
 app.use('/api/characters', characterRoutes)
+app.use('/api/game', gameRoutes)
+app.use('/api/dice', diceRoutes)
+app.use('/api/saves', saveRoutes)
 
 app.get('/api', (req, res) => {
   res.json({
@@ -61,10 +67,25 @@ app.get('/api', (req, res) => {
         modifyHP: 'POST /api/characters/:id/hp',
         addExperience: 'POST /api/characters/:id/experience'
       },
-      game: '/api/game (TODO)',
-      narrator: '/api/narrator (TODO)',
-      dice: '/api/dice (TODO)',
-      saves: '/api/saves (TODO)'
+      game: {
+        start: 'POST /api/game/start',
+        action: 'POST /api/game/session/:id/action',
+        state: 'GET /api/game/session/:id',
+        loadByToken: 'GET /api/game/session/token/:token',
+        end: 'POST /api/game/session/:id/end'
+      },
+      dice: {
+        roll: 'POST /api/dice/roll',
+        types: 'GET /api/dice/types'
+      },
+      saves: {
+        list: 'GET /api/saves',
+        save: 'POST /api/saves/:sessionId',
+        loadByToken: 'GET /api/saves/token/:token',
+        delete: 'DELETE /api/saves/:sessionId',
+        regenerateToken: 'POST /api/saves/:sessionId/regenerate-token'
+      },
+      narrator: '/api/narrator (TODO)'
     }
   })
 })

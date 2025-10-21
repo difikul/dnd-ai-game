@@ -164,6 +164,110 @@ Dialog NPC:`;
       return response.text()
     })
   }
+
+  /**
+   * Generuje backstory (příběh postavy) na základě jména, rasy a povolání
+   */
+  async generateCharacterBackstory(
+    characterName: string,
+    race: string,
+    characterClass: string
+  ): Promise<string> {
+    const prompt = `Vytvoř originální a zajímavý příběh postavy (backstory) pro D&D 5e v češtině.
+
+**Informace o postavě:**
+- Jméno: ${characterName}
+- Rasa: ${race}
+- Povolání: ${characterClass}
+
+**Požadavky:**
+- Délka: 150-300 slov
+- Styl: Fantasy, dramatický, ale s lehkým humorem
+- Zahrň: minulost postavy, motivaci k dobrodružství, nějakou osobní tragédii nebo tajemství
+- Specifické detaily pro ${race} a ${characterClass}
+- Popisný, živý jazyk
+- Bez nadpisu, přímo začni příběhem
+
+**Příběh postavy:**`;
+
+    return await withRetry(async () => {
+      const model = getModel()
+      const result = await model.generateContent(prompt)
+      const response = await result.response
+      return response.text()
+    })
+  }
+
+  /**
+   * Analyzuje narrator text a určí atmosféru scény
+   * Vrací strukturovaná data o lokaci, náladě, čase a počasí
+   */
+  async analyzeAtmosphere(narratorText: string): Promise<{
+    location: string
+    mood: string
+    timeOfDay: string
+    weather?: string
+  }> {
+    const prompt = `Analyzuj následující D&D narrator text a urči atmosféru scény.
+
+**DŮLEŽITÉ:** Vrať POUZE čistý JSON objekt, žádný další text, žádné markdown formatting!
+
+Formát JSON odpovědi:
+{
+  "location": "forest|tavern|mountain|cave|castle|dungeon|village|city|ruins|desert|ocean|swamp|plains|unknown",
+  "mood": "mysterious|dangerous|cozy|peaceful|epic|neutral",
+  "timeOfDay": "dawn|day|dusk|night",
+  "weather": "fog|rain|snow|storm|clear|cloudy|..."
+}
+
+**Pravidla:**
+- location: Typ lokace kde se děj odehrává (anglicky, jedno slovo)
+- mood: Nálada scény (mysterious=tajemná, dangerous=nebezpečná, cozy=útulná, peaceful=klidná, epic=epická, neutral=neutrální)
+- timeOfDay: Denní doba (dawn=úsvit, day=den, dusk=soumrak, night=noc)
+- weather: Počasí (pouze pokud je zmíněné v textu, jinak null)
+
+**Narrator text k analýze:**
+"${narratorText.substring(0, 500)}"
+
+JSON odpověď:`;
+
+    return await withRetry(async () => {
+      const model = getModel()
+      const result = await model.generateContent(prompt)
+      const response = await result.response
+      const text = response.text()
+
+      // Parsuj JSON z odpovědi
+      try {
+        // Pokus se najít JSON v odpovědi (může obsahovat markdown backticks)
+        let jsonText = text.trim()
+
+        // Odstraň markdown code blocks pokud jsou
+        if (jsonText.startsWith('```')) {
+          jsonText = jsonText.replace(/```json?\n?/g, '').replace(/```\n?$/g, '').trim()
+        }
+
+        const parsed = JSON.parse(jsonText)
+
+        // Validuj že máme required fields
+        if (!parsed.location || !parsed.mood || !parsed.timeOfDay) {
+          throw new Error('Missing required fields in atmosphere analysis')
+        }
+
+        return parsed
+      } catch (parseError: any) {
+        console.error('❌ Chyba při parsování atmosphere JSON:', parseError.message)
+        console.error('   Raw response:', text.substring(0, 200))
+
+        // Fallback
+        return {
+          location: 'unknown',
+          mood: 'neutral',
+          timeOfDay: 'day',
+        }
+      }
+    })
+  }
 }
 
 // Export singleton instance

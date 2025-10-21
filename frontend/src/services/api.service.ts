@@ -9,7 +9,7 @@ import type { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axio
 // Create axios instance
 export const api: AxiosInstance = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000',
-  timeout: 10000,
+  timeout: 30000, // 30 sekund - kvůli Gemini AI volání které může trvat 15-20s
   headers: {
     'Content-Type': 'application/json',
   },

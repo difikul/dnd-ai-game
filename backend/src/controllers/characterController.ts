@@ -4,7 +4,8 @@
 
 import { Request, Response } from 'express'
 import { characterService } from '../services/characterService'
-import { CreateCharacterRequest, UpdateCharacterRequest } from '../types/api.types'
+import { geminiService } from '../services/geminiService'
+import { CreateCharacterRequest, UpdateCharacterRequest, GenerateBackstoryRequest } from '../types/api.types'
 
 /**
  * POST /api/characters
@@ -254,6 +255,42 @@ export async function addExperience(req: Request, res: Response): Promise<void> 
       success: false,
       error: 'Nepodařilo se přidat experience',
       message: error instanceof Error ? error.message : 'Neznámá chyba'
+    })
+  }
+}
+
+/**
+ * POST /api/characters/generate-backstory
+ * Vygeneruje AI backstory pro postavu pomocí Gemini
+ * Body: { name: string, race: string, class: string }
+ */
+export async function generateBackstory(req: Request, res: Response): Promise<void> {
+  try {
+    const { name, race, class: characterClass }: GenerateBackstoryRequest = req.body
+
+    console.log(`✨ Generuji backstory pro ${name} (${race} ${characterClass})...`)
+
+    // Zavolej Gemini AI
+    const backstory = await geminiService.generateCharacterBackstory(
+      name,
+      race,
+      characterClass
+    )
+
+    console.log(`✅ Backstory vygenerován (${backstory.length} znaků)`)
+
+    res.status(200).json({
+      success: true,
+      data: { backstory },
+      message: 'Backstory byl úspěšně vygenerován'
+    })
+  } catch (error) {
+    console.error('Error v generateBackstory controller:', error)
+
+    res.status(500).json({
+      success: false,
+      error: 'Nepodařilo se vygenerovat backstory',
+      message: error instanceof Error ? error.message : 'Gemini API není dostupné'
     })
   }
 }

@@ -1,0 +1,157 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - generic [ref=e5]:
+    - complementary [ref=e6]:
+      - generic [ref=e7]:
+        - generic [ref=e10]:
+          - generic [ref=e12]: 👤
+          - generic [ref=e13]:
+            - heading "Quick Test" [level=1] [ref=e14]
+            - paragraph [ref=e15]: Human Fighter - Úroveň 1
+            - generic [ref=e16]:
+              - generic [ref=e17]: 🛡️ d10
+              - generic [ref=e18]: "⚔️ Bonus: +2"
+        - generic [ref=e19]:
+          - generic [ref=e20]:
+            - heading "Body života" [level=3] [ref=e21]
+            - generic [ref=e22]:
+              - generic [ref=e23]: "12"
+              - generic [ref=e24]: /
+              - generic [ref=e25]: "12"
+          - generic [ref=e28]:
+            - heading "Obranné číslo" [level=3] [ref=e29]
+            - generic [ref=e31]:
+              - img [ref=e32]
+              - generic [ref=e34]: "11"
+          - generic [ref=e35]:
+            - heading "Zkušenosti" [level=3] [ref=e36]
+            - generic [ref=e37]: 0 / 300
+            - paragraph [ref=e39]: Do další úrovně
+        - generic [ref=e40]:
+          - heading "Vlastnosti" [level=2] [ref=e41]
+          - generic [ref=e42]:
+            - generic [ref=e43]:
+              - generic [ref=e44]: STR
+              - generic [ref=e45]: "15"
+              - generic [ref=e46]: "+2"
+            - generic [ref=e47]:
+              - generic [ref=e48]: DEX
+              - generic [ref=e49]: "13"
+              - generic [ref=e50]: "+1"
+            - generic [ref=e51]:
+              - generic [ref=e52]: CON
+              - generic [ref=e53]: "14"
+              - generic [ref=e54]: "+2"
+            - generic [ref=e55]:
+              - generic [ref=e56]: INT
+              - generic [ref=e57]: "8"
+              - generic [ref=e58]: "-1"
+            - generic [ref=e59]:
+              - generic [ref=e60]: WIS
+              - generic [ref=e61]: "12"
+              - generic [ref=e62]: "+1"
+            - generic [ref=e63]:
+              - generic [ref=e64]: CHA
+              - generic [ref=e65]: "10"
+              - generic [ref=e66]: "+0"
+        - generic [ref=e67]:
+          - generic [ref=e68]:
+            - heading "👤 Human" [level=3] [ref=e69]:
+              - generic [ref=e70]: 👤
+              - text: Human
+            - paragraph [ref=e71]: Všestranní a ambiciózní lidé, kteří se rychle přizpůsobují
+            - generic [ref=e72]:
+              - heading "Rasové vlastnosti:" [level=4] [ref=e73]
+              - list [ref=e74]:
+                - listitem [ref=e75]: • Všestrannost
+                - listitem [ref=e76]: • Rychlé učení
+                - listitem [ref=e77]: • Bonus ke všem statistikám +1
+          - generic [ref=e78]:
+            - heading "🛡️ Fighter" [level=3] [ref=e79]:
+              - generic [ref=e80]: 🛡️
+              - text: Fighter
+            - paragraph [ref=e81]: Mistr bojových technik a všestranný válečník
+            - generic [ref=e82]:
+              - generic [ref=e83]:
+                - heading "Hit Dice:" [level=4] [ref=e84]
+                - text: d10
+              - generic [ref=e85]:
+                - heading "Primární vlastnosti:" [level=4] [ref=e86]
+                - generic [ref=e87]:
+                  - generic [ref=e88]: STR
+                  - generic [ref=e89]: DEX
+    - main [ref=e90]:
+      - generic [ref=e92]:
+        - generic [ref=e93]:
+          - heading "Quick Test" [level=1] [ref=e94]
+          - paragraph [ref=e95]:
+            - generic [ref=e96]: 📍 Vesnice Bree
+            - generic [ref=e97]: ● Online
+        - generic [ref=e98]:
+          - button "🎲 Dice" [active] [ref=e99] [cursor=pointer]:
+            - generic [ref=e100]: 🎲
+            - generic [ref=e101]: Dice
+          - button "💾 Uložit" [ref=e102] [cursor=pointer]:
+            - generic [ref=e103]: 💾
+            - generic [ref=e104]: Uložit
+          - button "🚪 Odejít" [ref=e105] [cursor=pointer]:
+            - generic [ref=e106]: 🚪
+            - generic [ref=e107]: Odejít
+      - generic [ref=e109]:
+        - generic [ref=e112]:
+          - generic [ref=e113]: 🎲 Vypravěč
+          - generic [ref=e114]:
+            - text: 📍
+            - strong [ref=e115]: Vesnice Bree, Hospoda U Skákavého poníka
+            - text: 👁️ Hustý dým z dýmky dlouhána hrbícího se v koutě se mísí s vůní piva a pečeného masa, která naplňuje prostor hospody U Skákavého poníka. Zvenčí doléhá tlumený šum vesnice Bree, občas přehlušený smíchem a hádáním u karetního stolu nedaleko krbu. Sedíš u dřevěného stolu, tvé ruce objímají korbel s vlažným pivem. Jsi unavený po dlouhé cestě a snažíš se vstřebat hluk a shon kolem sebe. Cítíš mírné brnění v nohách z celodenní chůze. Dnes jsi dorazil do Bree a doufal, že si zde odpočineš. Hospoda je plná místních i cestujících, kteří se zde zastavili na noc. U krbu hraje potulný bard na loutnu starou píseň o hrdinech a dracích. 💬 Starý hostinský Barnaby, s mastnou zástěrou a věčným úsměvem, ti podává další korbel. "Tak co, poutníku? Jak se ti líbí v Bree? Slyšel jsem, že se tu poslední dobou dějí divné věci. Skřeti se potulují v okolí a lidé se bojí vycházet po setmění. Ale co já vím, možná jsou to jenom povídačky starého Barnabyho." Zamrká na tebe a otře bar pult špinavou hadrou. "Každopádně, jestli hledáš práci, slyšel jsem, že starosta potřebuje někoho, kdo by se postaral o ty skřety." ⚔️ Žádný souboj. 🎲 Co chceš dělat?
+            - emphasis [ref=e116]:
+              - strong [ref=e117]: Zeptat se hostinského na podrobnosti o skřetech a starostovi.
+              - text: (Zjistit více informací)
+            - strong [ref=e118]: Doposlouchat barda a pokusit se s ním dát do řeči.
+            - text: (Možná se dozvíš něco zajímavého)
+            - emphasis [ref=e119]:
+              - strong [ref=e120]: Odejít z hospody a prozkoumat vesnici Bree.
+              - text: (Možná narazíš na něco zajímavého)
+            - strong [ref=e121]: Dopít pivo a jít spát do pronajatého pokoje.
+            - text: (Odpočinek je důležitý)
+          - generic [ref=e122]: 13:34
+        - generic [ref=e124]:
+          - generic [ref=e125]:
+            - textbox "Co chceš dělat?" [ref=e126]
+            - button "Odeslat" [disabled] [ref=e127]:
+              - generic [ref=e128]: Odeslat
+          - generic [ref=e129]:
+            - generic [ref=e130]: Stiskni Enter pro odeslání
+            - generic [ref=e131]: 1 zpráv
+  - generic [ref=e133]:
+    - generic [ref=e134]:
+      - heading "🎲 Dice Roller" [level=3] [ref=e136]
+      - generic [ref=e137]:
+        - paragraph [ref=e138]: "Quick Roll:"
+        - generic [ref=e139]:
+          - button "d4" [ref=e140] [cursor=pointer]
+          - button "d6" [ref=e141] [cursor=pointer]
+          - button "d8" [ref=e142] [cursor=pointer]
+          - button "d10" [ref=e143] [cursor=pointer]
+          - button "d12" [ref=e144] [cursor=pointer]
+          - button "d20" [ref=e145] [cursor=pointer]
+          - button "d100" [ref=e146] [cursor=pointer]
+      - generic [ref=e147]:
+        - generic [ref=e148]: "Custom Notation:"
+        - generic [ref=e149]:
+          - textbox "1d20+5" [ref=e150]
+          - button "Roll" [disabled] [ref=e151]
+      - generic [ref=e152]:
+        - generic [ref=e153] [cursor=pointer]:
+          - checkbox "Advantage" [ref=e154]
+          - generic [ref=e155]: Advantage
+        - generic [ref=e156] [cursor=pointer]:
+          - checkbox "Disadvantage" [ref=e157]
+          - generic [ref=e158]: Disadvantage
+      - generic [ref=e159]:
+        - generic [ref=e160]: 🎲
+        - paragraph [ref=e161]: Roll some dice to get started!
+    - button "Zavřít" [ref=e162] [cursor=pointer]
+```

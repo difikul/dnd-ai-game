@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { useRouter } from 'vue-router'
 import { useCharacterStore } from '@/stores/characterStore'
+import { useGameStore } from '@/stores/gameStore'
 import type {
   CharacterRace,
   CharacterClass,
@@ -23,8 +23,8 @@ import {
 import RaceSelector from './RaceSelector.vue'
 import ClassSelector from './ClassSelector.vue'
 
-const router = useRouter()
 const characterStore = useCharacterStore()
+const gameStore = useGameStore()
 
 // Creation state
 const currentStep = ref<CreationStep>(CreationStep.NameAndRace)
@@ -43,6 +43,8 @@ const assignedScores = ref<Partial<Record<AbilityScoreName, number>>>({})
 // Validation
 const nameError = ref('')
 const isCreating = ref(false)
+const isGeneratingBackstory = ref(false)
+const backstoryError = ref('')
 
 // Computed
 const canProceedStep1 = computed(() => {
@@ -164,6 +166,45 @@ function isScoreAssigned(score: number): boolean {
   return Object.values(assignedScores.value).includes(score)
 }
 
+async function generateBackstory() {
+  // Validace: musí mít vyplněné jméno, rasu a třídu
+  if (!characterName.value.trim() || !selectedRace.value || !selectedClass.value) {
+    backstoryError.value = 'Nejdřív vyplň jméno, rasu a třídu postavy'
+    return
+  }
+
+  isGeneratingBackstory.value = true
+  backstoryError.value = ''
+
+  try {
+    const response = await fetch('http://localhost:3000/api/characters/generate-backstory', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        name: characterName.value.trim(),
+        race: selectedRace.value,
+        class: selectedClass.value,
+      }),
+    })
+
+    const data = await response.json()
+
+    if (data.success && data.data.backstory) {
+      background.value = data.data.backstory
+      console.log('✨ Backstory úspěšně vygenerován')
+    } else {
+      backstoryError.value = data.message || 'Nepodařilo se vygenerovat příběh'
+    }
+  } catch (error) {
+    console.error('Failed to generate backstory:', error)
+    backstoryError.value = 'Chyba při generování příběhu. Zkuste to znovu.'
+  } finally {
+    isGeneratingBackstory.value = false
+  }
+}
+
 async function createCharacter() {
   if (!canCreate.value) return
 
@@ -182,13 +223,15 @@ async function createCharacter() {
       avatarUrl: avatarUrl.value.trim() || undefined,
     }
 
+    // Create character
     const newCharacter = await characterStore.createCharacter(characterData)
 
-    // Navigate to game with new character
-    router.push({ name: 'game', params: { id: newCharacter.id } })
+    // Start a new game session with this character
+    // Note: gameStore.startNewGame() handles navigation internally
+    await gameStore.startNewGame(newCharacter.id)
   } catch (error) {
-    console.error('Failed to create character:', error)
-    nameError.value = 'Nepodařilo se vytvořit postavu. Zkuste to znovu.'
+    console.error('Failed to create character or start game:', error)
+    nameError.value = 'Nepodařilo se vytvořit postavu nebo spustit hru. Zkuste to znovu.'
   } finally {
     isCreating.value = false
   }
@@ -391,14 +434,30 @@ watch(characterName, () => {
 
         <!-- Background Story -->
         <div>
-          <label for="background" class="block text-sm font-semibold text-gray-300 mb-2">
-            Příběh postavy (volitelné)
-          </label>
+          <div class="flex justify-between items-center mb-2">
+            <label for="background" class="text-sm font-semibold text-gray-300">
+              Příběh postavy (volitelné)
+            </label>
+            <button
+              type="button"
+              @click="generateBackstory"
+              :disabled="isGeneratingBackstory || !characterName || !selectedRace || !selectedClass"
+              class="px-4 py-2 bg-gradient-to-r from-primary-500 to-fantasy-gold hover:from-primary-600 hover:to-yellow-500 text-white font-semibold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              <span v-if="isGeneratingBackstory">⏳</span>
+              <span v-else>✨</span>
+              {{ isGeneratingBackstory ? 'Generuji...' : 'Generovat AI příběh' }}
+            </button>
+          </div>
+
+          <p v-if="backstoryError" class="mb-2 text-sm text-fantasy-ruby">{{ backstoryError }}</p>
+
           <textarea
             id="background"
             v-model="background"
             rows="8"
-            class="w-full px-4 py-3 bg-dark-800 border-2 border-dark-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-primary-500 transition-colors resize-none"
+            :disabled="isGeneratingBackstory"
+            class="w-full px-4 py-3 bg-dark-800 border-2 border-dark-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-primary-500 transition-colors resize-none disabled:opacity-50 disabled:cursor-not-allowed"
             placeholder="Napiš příběh své postavy..."
             maxlength="1000"
           />

@@ -3,7 +3,8 @@
  */
 
 import { z } from 'zod'
-import { CharacterRace, CharacterClass, DiceNotation } from './dnd.types'
+import { DiceNotation } from './dnd.types'
+import { AtmosphereData } from './atmosphere.types'
 
 // ============================================================================
 // Character API Types
@@ -38,34 +39,62 @@ export const updateCharacterSchema = z.object({
   avatarUrl: z.string().url().optional()
 }).strict()
 
+export const generateBackstorySchema = z.object({
+  name: z.string().min(1, 'Jméno je povinné').max(50, 'Jméno může mít maximálně 50 znaků'),
+  race: z.enum(['Human', 'Elf', 'Dwarf', 'Halfling', 'Dragonborn', 'Gnome', 'Half-Elf', 'Half-Orc', 'Tiefling'], {
+    errorMap: () => ({ message: 'Neplatná rasa' })
+  }),
+  class: z.enum(['Barbarian', 'Bard', 'Cleric', 'Druid', 'Fighter', 'Monk', 'Paladin', 'Ranger', 'Rogue', 'Sorcerer', 'Warlock', 'Wizard'], {
+    errorMap: () => ({ message: 'Neplatná třída' })
+  })
+}).strict()
+
 export type CreateCharacterRequest = z.infer<typeof createCharacterSchema>
 export type UpdateCharacterRequest = z.infer<typeof updateCharacterSchema>
+export type GenerateBackstoryRequest = z.infer<typeof generateBackstorySchema>
 
 // ============================================================================
 // Game API Types
 // ============================================================================
 
-export interface StartGameRequest {
-  characterId: string
-  startingLocation?: string
-}
+// Zod Validation Schemas pro Game API
+export const startGameSchema = z.object({
+  characterId: z.string().uuid('Neplatné UUID postavy'),
+  startingLocation: z.string().min(1).max(100).optional()
+}).strict()
+
+export const playerActionSchema = z.object({
+  action: z.string().min(1, 'Akce nesmí být prázdná').max(500, 'Akce může mít maximálně 500 znaků'),
+  characterId: z.string().uuid('Neplatné UUID postavy')
+}).strict()
+
+export const sessionIdParamSchema = z.object({
+  id: z.string().uuid('Neplatné UUID session')
+})
+
+// TypeScript Types
+export type StartGameRequest = z.infer<typeof startGameSchema>
+export type PlayerActionRequest = z.infer<typeof playerActionSchema>
 
 export interface StartGameResponse {
   sessionId: string
   sessionToken: string
   narratorMessage: string
-}
-
-export interface PlayerActionRequest {
-  sessionId: string
-  action: string
+  character: any
 }
 
 export interface PlayerActionResponse {
   narratorResponse: string
   requiresDiceRoll?: boolean
   diceType?: string
-  updatedGameState?: any
+  metadata?: any
+  atmosphere?: AtmosphereData
+}
+
+export interface GameStateResponse {
+  session: any
+  character: any
+  messages: any[]
 }
 
 // ============================================================================

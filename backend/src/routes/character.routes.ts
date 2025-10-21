@@ -3,11 +3,21 @@
  */
 
 import { Router } from 'express'
+import rateLimit from 'express-rate-limit'
 import * as characterController from '../controllers/characterController'
 import { validateRequest, validateUUID } from '../middleware/validation.middleware'
-import { createCharacterSchema, updateCharacterSchema } from '../types/api.types'
+import { createCharacterSchema, updateCharacterSchema, generateBackstorySchema } from '../types/api.types'
 
 const router = Router()
+
+// Rate limiter pro AI generování (drahé volání)
+const aiGenerationLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minuta
+  max: 5, // Max 5 requests per minute
+  message: 'Příliš mnoho požadavků na generování. Zkuste to za chvíli.',
+  standardHeaders: true,
+  legacyHeaders: false,
+})
 
 // ============================================================================
 // Character CRUD Routes
@@ -89,6 +99,22 @@ router.post(
   '/:id/experience',
   validateUUID('id'),
   characterController.addExperience
+)
+
+// ============================================================================
+// AI Generation Routes
+// ============================================================================
+
+/**
+ * POST /api/characters/generate-backstory
+ * Vygeneruje AI backstory pro postavu pomocí Gemini
+ * Body: { name: string, race: string, class: string }
+ */
+router.post(
+  '/generate-backstory',
+  aiGenerationLimiter,
+  validateRequest(generateBackstorySchema),
+  characterController.generateBackstory
 )
 
 export default router

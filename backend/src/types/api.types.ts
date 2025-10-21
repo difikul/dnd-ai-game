@@ -84,7 +84,7 @@ export interface StartGameResponse {
 }
 
 export interface PlayerActionResponse {
-  narratorResponse: string
+  response: string
   requiresDiceRoll?: boolean
   diceType?: string
   metadata?: any

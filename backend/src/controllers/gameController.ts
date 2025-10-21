@@ -110,7 +110,7 @@ export async function handleAction(req: Request, res: Response): Promise<void> {
 
     // Připrav response
     const response: PlayerActionResponse = {
-      narratorResponse: result.response,
+      response: result.response,
       requiresDiceRoll: result.metadata?.requiresDiceRoll,
       diceType: result.metadata?.diceRollType,
       metadata: result.metadata,

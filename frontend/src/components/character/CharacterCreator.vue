@@ -459,9 +459,9 @@ watch(characterName, () => {
             :disabled="isGeneratingBackstory"
             class="w-full px-4 py-3 bg-dark-800 border-2 border-dark-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-primary-500 transition-colors resize-none disabled:opacity-50 disabled:cursor-not-allowed"
             placeholder="Napiš příběh své postavy..."
-            maxlength="1000"
+            maxlength="2000"
           />
-          <p class="mt-2 text-sm text-gray-400">{{ background.length }} / 1000</p>
+          <p class="mt-2 text-sm text-gray-400">{{ background.length }} / 2000</p>
         </div>
 
         <!-- Character Summary -->

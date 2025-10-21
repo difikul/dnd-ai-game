@@ -26,9 +26,16 @@ app.use(compression())
 // Request logging
 app.use(morgan('dev'))
 
-// Body parsing
-app.use(express.json())
-app.use(express.urlencoded({ extended: true }))
+// Body parsing with security limits (prevent DoS attacks)
+app.use(express.json({
+  limit: '10mb', // Limit JSON payload size
+  strict: true // Only accept arrays and objects
+}))
+app.use(express.urlencoded({
+  extended: true,
+  limit: '10mb', // Limit URL-encoded payload size
+  parameterLimit: 1000 // Limit number of parameters
+}))
 
 // Health check endpoint
 app.get('/health', (req, res) => {

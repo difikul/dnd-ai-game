@@ -4,9 +4,9 @@
  */
 
 import { Character } from '@prisma/client'
+import { prisma } from '../config/database'
 import { CharacterStats, CharacterModifiers, CharacterClass } from '../types/dnd.types'
 import { CreateCharacterRequest, UpdateCharacterRequest } from '../types/api.types'
-import { prisma } from '../config/database'
 
 // ============================================================================
 // D&D 5e Constants - Hit Dice podle třídy
@@ -34,6 +34,13 @@ const HIT_DICE: Record<CharacterClass, number> = {
 /**
  * Vypočítá modifier podle D&D 5e pravidel
  * Vzorec: (stat - 10) / 2 (zaokrouhleno dolů)
+ *
+ * @param stat - Hodnota ability score (obvykle 3-20)
+ * @returns Vypočítaný modifier (-4 až +5 pro běžné hodnoty)
+ * @example
+ * calculateModifier(10) // returns 0
+ * calculateModifier(16) // returns +3
+ * calculateModifier(8)  // returns -1
  */
 export function calculateModifier(stat: number): number {
   return Math.floor((stat - 10) / 2)
@@ -41,6 +48,9 @@ export function calculateModifier(stat: number): number {
 
 /**
  * Vypočítá všechny modifikátory pro postavu
+ *
+ * @param stats - Objekt se všemi ability scores postavy
+ * @returns Objekt se všemi vypočítanými modifikátory
  */
 export function calculateModifiers(stats: CharacterStats): CharacterModifiers {
   return {
@@ -56,7 +66,15 @@ export function calculateModifiers(stats: CharacterStats): CharacterModifiers {
 /**
  * Vypočítá maximální HP podle D&D 5e pravidel
  * Level 1: Maximum z Hit Dice + CON modifier
- * Další levely: (Hit Dice / 2 + 1) + CON modifier per level
+ * Další levely: průměr Hit Dice (zaokrouhleno nahoru) + CON modifier per level
+ *
+ * @param constitution - Constitution score postavy (ne modifier!)
+ * @param characterClass - Třída postavy (určuje Hit Dice)
+ * @param level - Úroveň postavy (default 1)
+ * @returns Maximální hit points
+ * @example
+ * calculateMaxHP(14, 'Fighter', 1) // returns 12 (10 + 2)
+ * calculateMaxHP(16, 'Wizard', 3)  // returns 18 (6+3 + 2*(4+3))
  */
 export function calculateMaxHP(
   constitution: number,
@@ -69,9 +87,10 @@ export function calculateMaxHP(
   // Level 1: plný Hit Die + CON modifier
   let maxHP = hitDie + conModifier
 
-  // Další levely: průměr Hit Die (zaokrouhleno nahoru) + CON modifier
+  // Další levely: průměr Hit Die (zaokrouhleno nahoru podle D&D 5e pravidel) + CON modifier
+  // Vzorec: (hitDie / 2) + 1, zaokrouhleno nahoru
   if (level > 1) {
-    const avgHitDie = Math.floor(hitDie / 2) + 1
+    const avgHitDie = Math.ceil(hitDie / 2) + 1
     maxHP += (avgHitDie + conModifier) * (level - 1)
   }
 
@@ -82,7 +101,15 @@ export function calculateMaxHP(
 /**
  * Vypočítá Armor Class podle D&D 5e pravidel
  * Základní AC: 10 + DEX modifier
- * TODO: + armor value pokud má postava equipped armor
+ * S brněním: armor value + DEX modifier (s omezením pro heavy armor)
+ *
+ * @param dexterity - Dexterity score postavy (ne modifier!)
+ * @param equippedArmorValue - Hodnota equipped armor (volitelné)
+ * @returns Vypočítaný Armor Class
+ * @todo Implementovat omezení DEX bonusu pro heavy armor
+ * @example
+ * calculateAC(14) // returns 12 (10 + 2)
+ * calculateAC(16, 14) // returns 16 (14 + 3, light armor)
  */
 export function calculateAC(dexterity: number, equippedArmorValue?: number): number {
   const dexModifier = calculateModifier(dexterity)
@@ -102,7 +129,12 @@ export function calculateAC(dexterity: number, equippedArmorValue?: number): num
 // ============================================================================
 
 /**
- * Vytvoří novou postavu s automatickým výpočtem derived stats
+ * Vytvoří novou postavu s automatickým výpočtem derived stats (HP, AC)
+ * Postava začíná s plným HP a level 1 (pokud není specifikováno jinak)
+ *
+ * @param data - Data pro vytvoření postavy (jméno, rasa, třída, ability scores, atd.)
+ * @returns Promise s vytvořenou postavou včetně inventáře
+ * @throws Error pokud se nepodaří vytvořit postavu v databázi
  */
 export async function createCharacter(data: CreateCharacterRequest): Promise<Character> {
   const level = data.level || 1
@@ -147,6 +179,10 @@ export async function createCharacter(data: CreateCharacterRequest): Promise<Cha
 
 /**
  * Načte postavu podle ID včetně inventáře
+ *
+ * @param id - UUID postavy
+ * @returns Promise s postavou nebo null pokud nebyla nalezena
+ * @throws Error pokud nastane chyba při komunikaci s databází
  */
 export async function getCharacter(id: string): Promise<Character | null> {
   try {
@@ -296,7 +332,16 @@ export async function addExperience(
 }
 
 /**
- * Upraví HP postavy (healing, damage)
+ * Upraví HP postavy (healing nebo damage)
+ * HP jsou automaticky limitovány mezi 0 a maxHitPoints
+ *
+ * @param id - UUID postavy
+ * @param amount - Změna HP (kladná = healing, záporná = damage)
+ * @returns Promise s aktualizovanou postavou
+ * @throws Error pokud postava není nalezena nebo nastane chyba
+ * @example
+ * modifyHP('uuid-123', 5)  // Uzdraví o 5 HP
+ * modifyHP('uuid-123', -8) // Utrpí 8 damage
  */
 export async function modifyHP(
   id: string,

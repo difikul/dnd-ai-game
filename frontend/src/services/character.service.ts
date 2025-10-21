@@ -42,13 +42,14 @@ export async function getCharacter(id: string): Promise<Character> {
  * Get all characters for current user
  */
 export async function getAllCharacters(): Promise<Character[]> {
-  const response = await api.get<ApiResponse<CharacterListResponse>>('/api/characters')
+  const response = await api.get<ApiResponse<Character[]>>('/api/characters')
 
   if (!response.data.success || !response.data.data) {
     throw new Error(response.data.error || 'Nepodařilo se načíst postavy')
   }
 
-  return response.data.data.characters
+  // Backend returns characters array directly in data field
+  return response.data.data
 }
 
 /**

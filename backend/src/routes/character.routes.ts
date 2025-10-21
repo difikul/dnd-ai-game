@@ -6,6 +6,7 @@ import { Router } from 'express'
 import rateLimit from 'express-rate-limit'
 import * as characterController from '../controllers/characterController'
 import { validateRequest, validateUUID } from '../middleware/validation.middleware'
+import { characterCreationRateLimiter } from '../middleware/rateLimiting.middleware'
 import { createCharacterSchema, updateCharacterSchema, generateBackstorySchema } from '../types/api.types'
 
 const router = Router()
@@ -26,10 +27,12 @@ const aiGenerationLimiter = rateLimit({
 /**
  * POST /api/characters
  * Vytvoří novou postavu
+ * Rate limited: 10 characters per hour to prevent spam
  * Body: CreateCharacterRequest
  */
 router.post(
   '/',
+  characterCreationRateLimiter,
   validateRequest(createCharacterSchema),
   characterController.createCharacter
 )

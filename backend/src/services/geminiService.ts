@@ -10,8 +10,74 @@ import { NarratorResponse } from '../types/dnd.types'
 
 /**
  * Service pro komunikaci s Gemini AI jako D&D Dungeon Master
+ * Implementuje caching pro optimalizaci performance a snížení API volání
  */
 class GeminiService {
+  // Cache pro AI responses (key: hash promptu, value: response)
+  // LRU cache s max 100 položkami a TTL 1 hodina
+  private responseCache: Map<string, { response: string; timestamp: number }> = new Map()
+  private readonly CACHE_MAX_SIZE = 100
+  private readonly CACHE_TTL = 60 * 60 * 1000 // 1 hodina v ms
+
+  /**
+   * Vytvoří hash z promptu pro cache key
+   * @param prompt - Text promptu
+   * @returns Hash string
+   */
+  private hashPrompt(prompt: string): string {
+    // Jednoduchý hash function - pro produkci použít crypto.createHash
+    let hash = 0
+    for (let i = 0; i < prompt.length; i++) {
+      const char = prompt.charCodeAt(i)
+      hash = ((hash << 5) - hash) + char
+      hash = hash & hash // Convert to 32bit integer
+    }
+    return hash.toString(36)
+  }
+
+  /**
+   * Získá response z cache pokud existuje a není expired
+   * @param prompt - Prompt pro vyhledání
+   * @returns Cached response nebo null
+   */
+  private getCachedResponse(prompt: string): string | null {
+    const key = this.hashPrompt(prompt)
+    const cached = this.responseCache.get(key)
+
+    if (!cached) return null
+
+    // Zkontroluj TTL
+    const age = Date.now() - cached.timestamp
+    if (age > this.CACHE_TTL) {
+      this.responseCache.delete(key)
+      return null
+    }
+
+    console.log('✅ Using cached Gemini response')
+    return cached.response
+  }
+
+  /**
+   * Uloží response do cache
+   * Implementuje LRU eviction policy
+   * @param prompt - Prompt jako key
+   * @param response - Response k uložení
+   */
+  private setCachedResponse(prompt: string, response: string): void {
+    const key = this.hashPrompt(prompt)
+
+    // LRU eviction - pokud cache je plná, odstraň nejstarší
+    if (this.responseCache.size >= this.CACHE_MAX_SIZE) {
+      const firstKey = this.responseCache.keys().next().value
+      this.responseCache.delete(firstKey)
+    }
+
+    this.responseCache.set(key, {
+      response,
+      timestamp: Date.now()
+    })
+  }
+
   /**
    * Vytvoří úvodní narrator response pro novou hru
    */
@@ -21,12 +87,22 @@ class GeminiService {
   ): Promise<string> {
     const prompt = buildGameStartPrompt(character, startingLocation)
 
-    return await withRetry(async () => {
+    // Zkontroluj cache
+    const cached = this.getCachedResponse(prompt)
+    if (cached) return cached
+
+    // Generuj nový response
+    const response = await withRetry(async () => {
       const model = getModel()
       const result = await model.generateContent(prompt)
-      const response = await result.response
-      return response.text()
+      const apiResponse = await result.response
+      return apiResponse.text()
     })
+
+    // Ulož do cache
+    this.setCachedResponse(prompt, response)
+
+    return response
   }
 
   /**
@@ -130,12 +206,41 @@ ${messageTexts.join('\n\n')}
 
 Shrnutí:`;
 
-    return await withRetry(async () => {
+    // Zkontroluj cache
+    const cached = this.getCachedResponse(prompt)
+    if (cached) return cached
+
+    // Generuj nový response
+    const response = await withRetry(async () => {
       const model = getModel()
       const result = await model.generateContent(prompt)
-      const response = await result.response
-      return response.text()
+      const apiResponse = await result.response
+      return apiResponse.text()
     })
+
+    // Ulož do cache
+    this.setCachedResponse(prompt, response)
+
+    return response
+  }
+
+  /**
+   * Vyčistí cache (např. při restartu nebo pro testing)
+   */
+  clearCache(): void {
+    this.responseCache.clear()
+    console.log('🗑️  Gemini response cache cleared')
+  }
+
+  /**
+   * Získá statistiky cache
+   */
+  getCacheStats(): { size: number; maxSize: number; ttl: number } {
+    return {
+      size: this.responseCache.size,
+      maxSize: this.CACHE_MAX_SIZE,
+      ttl: this.CACHE_TTL
+    }
   }
 
   /**

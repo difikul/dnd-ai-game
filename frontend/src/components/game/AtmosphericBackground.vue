@@ -26,12 +26,24 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import { storeToRefs } from 'pinia'
+import { computed, watch } from 'vue'
 import { useAtmosphereStore } from '@/stores/atmosphereStore'
 
 const atmosphereStore = useAtmosphereStore()
-const { currentBackground, previousBackground, moodColors } = storeToRefs(atmosphereStore)
+
+// Use computed instead of storeToRefs for better reactivity
+const currentBackground = computed(() => atmosphereStore.currentBackground)
+const previousBackground = computed(() => atmosphereStore.previousBackground)
+const moodColors = computed(() => atmosphereStore.moodColors)
+
+// Debug logging to verify reactivity
+watch(currentBackground, (newVal) => {
+  console.log('🎨 [AtmosphericBackground Component] currentBackground changed:', newVal?.substring(0, 60) + '...')
+}, { immediate: true })
+
+watch(() => atmosphereStore.hasBackground, (newVal) => {
+  console.log('🎨 [AtmosphericBackground Component] hasBackground:', newVal)
+}, { immediate: true })
 </script>
 
 <style scoped>

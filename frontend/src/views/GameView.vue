@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-dark-900 text-white relative">
+  <div class="min-h-screen text-white relative">
     <!-- Atmospheric Background -->
     <AtmosphericBackground />
 

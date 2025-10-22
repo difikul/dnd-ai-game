@@ -114,9 +114,9 @@ watch(() => atmosphereStore.hasBackground, (newVal) => {
   background: radial-gradient(
     circle at center,
     transparent 0%,
-    transparent 30%,
-    rgba(0, 0, 0, 0.4) 70%,
-    rgba(0, 0, 0, 0.7) 100%
+    transparent 50%,
+    rgba(0, 0, 0, 0.15) 85%,
+    rgba(0, 0, 0, 0.3) 100%
   );
   pointer-events: none;
 }
@@ -131,9 +131,9 @@ watch(() => atmosphereStore.hasBackground, (newVal) => {
     background: radial-gradient(
       circle at center,
       transparent 0%,
-      transparent 20%,
-      rgba(0, 0, 0, 0.5) 70%,
-      rgba(0, 0, 0, 0.8) 100%
+      transparent 40%,
+      rgba(0, 0, 0, 0.2) 80%,
+      rgba(0, 0, 0, 0.35) 100%
     );
   }
 }

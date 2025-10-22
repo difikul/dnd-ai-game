@@ -67,27 +67,27 @@ export interface MoodColors {
  */
 export const MOOD_COLORS: Record<Mood, MoodColors> = {
   [Mood.MYSTERIOUS]: {
-    overlay: 'rgba(25, 15, 45, 0.7)',      // Tmavě fialová
-    vignette: 'rgba(15, 10, 30, 0.8)'
+    overlay: 'rgba(25, 15, 45, 0.2)',      // Tmavě fialová (sníženo z 0.7)
+    vignette: 'rgba(15, 10, 30, 0.3)'      // (sníženo z 0.8)
   },
   [Mood.DANGEROUS]: {
-    overlay: 'rgba(45, 15, 15, 0.7)',      // Tmavě červená
-    vignette: 'rgba(30, 10, 10, 0.8)'
+    overlay: 'rgba(45, 15, 15, 0.2)',      // Tmavě červená (sníženo z 0.7)
+    vignette: 'rgba(30, 10, 10, 0.3)'      // (sníženo z 0.8)
   },
   [Mood.COZY]: {
-    overlay: 'rgba(45, 30, 15, 0.6)',      // Teplá hnědá
-    vignette: 'rgba(30, 20, 10, 0.7)'
+    overlay: 'rgba(45, 30, 15, 0.15)',     // Teplá hnědá (sníženo z 0.6)
+    vignette: 'rgba(30, 20, 10, 0.25)'     // (sníženo z 0.7)
   },
   [Mood.PEACEFUL]: {
-    overlay: 'rgba(15, 35, 45, 0.5)',      // Jemná modrá
-    vignette: 'rgba(10, 25, 35, 0.7)'
+    overlay: 'rgba(15, 35, 45, 0.15)',     // Jemná modrá (sníženo z 0.5)
+    vignette: 'rgba(10, 25, 35, 0.25)'     // (sníženo z 0.7)
   },
   [Mood.EPIC]: {
-    overlay: 'rgba(45, 35, 15, 0.6)',      // Zlatá
-    vignette: 'rgba(35, 25, 10, 0.8)'
+    overlay: 'rgba(45, 35, 15, 0.15)',     // Zlatá (sníženo z 0.6)
+    vignette: 'rgba(35, 25, 10, 0.3)'      // (sníženo z 0.8)
   },
   [Mood.NEUTRAL]: {
-    overlay: 'rgba(10, 10, 20, 0.4)',      // Neutrální tmavá
-    vignette: 'rgba(5, 5, 15, 0.7)'
+    overlay: 'rgba(10, 10, 20, 0.1)',      // Neutrální tmavá (sníženo z 0.4)
+    vignette: 'rgba(5, 5, 15, 0.2)'        // (sníženo z 0.7)
   }
 }

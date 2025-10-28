@@ -2,6 +2,7 @@
 import { ref, computed, watch } from 'vue'
 import { useCharacterStore } from '@/stores/characterStore'
 import { useGameStore } from '@/stores/gameStore'
+import * as characterService from '@/services/character.service'
 import type {
   CharacterRace,
   CharacterClass,
@@ -177,29 +178,21 @@ async function generateBackstory() {
   backstoryError.value = ''
 
   try {
-    const response = await fetch('http://localhost:3000/api/characters/generate-backstory', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        name: characterName.value.trim(),
-        race: selectedRace.value,
-        class: selectedClass.value,
-      }),
+    // Použití character.service místo native fetch
+    // characterService automaticky přidá Authorization header přes api.service interceptor
+    const generatedBackstory = await characterService.generateBackstory({
+      name: characterName.value.trim(),
+      race: selectedRace.value,
+      class: selectedClass.value,
     })
 
-    const data = await response.json()
-
-    if (data.success && data.data.backstory) {
-      background.value = data.data.backstory
-      console.log('✨ Backstory úspěšně vygenerován')
-    } else {
-      backstoryError.value = data.message || 'Nepodařilo se vygenerovat příběh'
-    }
+    background.value = generatedBackstory
+    console.log('✨ Backstory úspěšně vygenerován')
   } catch (error) {
     console.error('Failed to generate backstory:', error)
-    backstoryError.value = 'Chyba při generování příběhu. Zkuste to znovu.'
+    backstoryError.value = error instanceof Error
+      ? error.message
+      : 'Chyba při generování příběhu. Zkuste to znovu.'
   } finally {
     isGeneratingBackstory.value = false
   }

@@ -78,10 +78,31 @@ export async function deleteCharacter(id: string): Promise<void> {
   }
 }
 
+/**
+ * Generate AI backstory for character
+ */
+export async function generateBackstory(data: {
+  name: string
+  race: string
+  class: string
+}): Promise<string> {
+  const response = await api.post<ApiResponse<{ backstory: string }>>(
+    '/api/characters/generate-backstory',
+    data
+  )
+
+  if (!response.data.success || !response.data.data) {
+    throw new Error(response.data.error || 'Nepodařilo se vygenerovat backstory')
+  }
+
+  return response.data.data.backstory
+}
+
 export default {
   createCharacter,
   getCharacter,
   getAllCharacters,
   updateCharacter,
   deleteCharacter,
+  generateBackstory,
 }

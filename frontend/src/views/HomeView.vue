@@ -1,6 +1,23 @@
 <template>
   <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-dark-900 via-dark-800 to-dark-900 p-4">
     <div class="max-w-2xl w-full">
+      <!-- User Info & Logout -->
+      <div class="flex justify-between items-center mb-8 px-2">
+        <div class="text-gray-400 text-sm">
+          <span class="text-gray-500">Přihlášen jako:</span>
+          <span class="text-gold-400 font-medium ml-2">{{ authStore.user?.username }}</span>
+          <span v-if="!authStore.hasGeminiKey" class="ml-3 text-yellow-400">
+            ⚠️ Chybí Gemini API klíč
+          </span>
+        </div>
+        <button
+          @click="handleLogout"
+          class="px-4 py-2 bg-dark-700 hover:bg-dark-600 text-gray-300 hover:text-white text-sm rounded-lg transition-colors"
+        >
+          Odhlásit se
+        </button>
+      </div>
+
       <!-- Header -->
       <div class="text-center mb-12">
         <h1 class="text-5xl sm:text-6xl font-display font-bold text-primary-500 mb-4">
@@ -87,14 +104,24 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useGameStore } from '@/stores/gameStore'
+import { useAuthStore } from '@/stores/authStore'
 
 const router = useRouter()
 const gameStore = useGameStore()
+const authStore = useAuthStore()
 
 // State
 const loadToken = ref('')
 const loading = ref(false)
 const tokenError = ref('')
+
+/**
+ * Logout user and redirect to login
+ */
+function handleLogout() {
+  authStore.logout()
+  router.push('/login')
+}
 
 /**
  * Validate and load game by token

@@ -1,10 +1,12 @@
 /**
  * API Service
  * Axios instance with interceptors for API communication
+ * Automatically adds auth token from authStore to all requests
  */
 
 import axios from 'axios'
 import type { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios'
+import { useAuthStore } from '@/stores/authStore'
 
 // Create axios instance
 export const api: AxiosInstance = axios.create({
@@ -15,13 +17,14 @@ export const api: AxiosInstance = axios.create({
   },
 })
 
-// Request interceptor
+// Request interceptor - adds auth token from authStore
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
+    const authStore = useAuthStore()
+
     // Add auth token if available
-    const token = localStorage.getItem('auth_token')
-    if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`
+    if (authStore.token && config.headers) {
+      config.headers.Authorization = `Bearer ${authStore.token}`
     }
 
     return config
@@ -32,19 +35,26 @@ api.interceptors.request.use(
   }
 )
 
-// Response interceptor
+// Response interceptor - handles errors including 401 logout
 api.interceptors.response.use(
   (response) => {
     return response
   },
   (error: AxiosError) => {
+    const authStore = useAuthStore()
+
     // Handle common errors
     if (error.response) {
       switch (error.response.status) {
         case 401:
-          // Unauthorized - redirect to login or clear auth
-          localStorage.removeItem('auth_token')
-          console.error('Unauthorized access')
+          // Unauthorized - logout user and redirect to login
+          console.error('🔒 Token expiroval nebo je neplatný, odhlašuji...')
+          authStore.logout()
+
+          // Redirect na login (pokud nejsme už na login page)
+          if (window.location.pathname !== '/login') {
+            window.location.href = '/login'
+          }
           break
         case 403:
           console.error('Forbidden access')

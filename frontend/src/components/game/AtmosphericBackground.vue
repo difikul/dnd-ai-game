@@ -2,16 +2,22 @@
   <div class="atmospheric-background">
     <!-- Previous Background (fade out) -->
     <div
-      v-if="previousBackground"
+      v-show="previousBackground"
       class="background-layer fade-out"
-      :style="{ backgroundImage: `url(${previousBackground})` }"
+      :style="{
+        backgroundImage: previousBackground ? `url(${previousBackground})` : 'none',
+        opacity: previousBackground ? 0 : 0
+      }"
     />
 
     <!-- Current Background (fade in) -->
     <div
-      v-if="currentBackground"
       class="background-layer fade-in"
-      :style="{ backgroundImage: `url(${currentBackground})` }"
+      :style="{
+        backgroundImage: currentBackground ? `url(${currentBackground})` : 'none',
+        opacity: currentBackground ? 1 : 0,
+        pointerEvents: currentBackground ? 'auto' : 'none'
+      }"
     />
 
     <!-- Mood Overlay -->
@@ -37,8 +43,22 @@ const previousBackground = computed(() => atmosphereStore.previousBackground)
 const moodColors = computed(() => atmosphereStore.moodColors)
 
 // Debug logging to verify reactivity
-watch(currentBackground, (newVal) => {
+watch(currentBackground, (newVal, oldVal) => {
   console.log('🎨 [AtmosphericBackground Component] currentBackground changed:', newVal?.substring(0, 60) + '...')
+  console.log('🎨 [Component] Old value:', oldVal?.substring(0, 40) + '...')
+  console.log('🎨 [Component] New value:', newVal?.substring(0, 40) + '...')
+  console.log('🎨 [Component] Store direct:', atmosphereStore.currentBackground?.substring(0, 40) + '...')
+
+  // Force check DOM after update
+  setTimeout(() => {
+    const element = document.querySelector('.background-layer.fade-in')
+    if (element) {
+      const style = getComputedStyle(element)
+      console.log('✅ [Component] Element exists! Opacity:', style.opacity, 'BG:', style.backgroundImage.substring(0, 50))
+    } else {
+      console.log('❌ [Component] Element NOT in DOM!')
+    }
+  }, 100)
 }, { immediate: true })
 
 watch(() => atmosphereStore.hasBackground, (newVal) => {

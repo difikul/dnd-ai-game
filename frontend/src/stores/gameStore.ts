@@ -6,7 +6,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import type { GameSession, LoadGameResponse } from '@/types/game'
+import type { GameSession, LoadGameResponse, SavedGameListItem } from '@/types/game'
 import gameService from '@/services/game.service'
 import { getErrorMessage } from '@/services/api.service'
 import { useChatStore } from './chatStore'
@@ -17,7 +17,7 @@ export const useGameStore = defineStore('game', () => {
 
   // State
   const currentSession = ref<GameSession | null>(null)
-  const savedGames = ref<LoadGameResponse[]>([])
+  const savedGames = ref<SavedGameListItem[]>([])
   const loading = ref(false)
   const error = ref<string | null>(null)
 
@@ -220,7 +220,7 @@ export const useGameStore = defineStore('game', () => {
       await gameService.deleteGame(sessionId)
 
       // Remove from local savedGames list
-      savedGames.value = savedGames.value.filter(game => game.session.id !== sessionId)
+      savedGames.value = savedGames.value.filter(game => game.sessionId !== sessionId)
     } catch (err) {
       error.value = getErrorMessage(err)
       throw err

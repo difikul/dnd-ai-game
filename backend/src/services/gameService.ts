@@ -7,6 +7,7 @@ import { Character, GameSession, Message } from '@prisma/client'
 import { nanoid } from 'nanoid'
 import { geminiService } from './geminiService'
 import { atmosphereService } from './atmosphereService'
+import * as validationService from './validationService'
 import { prisma } from '../config/database'
 import { AtmosphereData } from '../types/atmosphere.types'
 // import { contextService } from './contextService' // Připraveno pro budoucí použití
@@ -168,7 +169,54 @@ export async function processPlayerAction(
       throw new Error('Herní session není aktivní')
     }
 
-    // 2. Ulož player message
+    // 2. ✨ PRE-VALIDATION - kontrola akce před AI
+    console.log(`🔍 Validuji akci hráče...`)
+    const validation = await validationService.validatePlayerAction(
+      characterId,
+      action
+    )
+
+    if (!validation.valid) {
+      // Validace selhala - vrať chybovou zprávu bez volání AI
+      console.log(`❌ Validace selhala: ${validation.reason}`)
+
+      // Ulož player message i když je invalid (pro historii)
+      await prisma.message.create({
+        data: {
+          sessionId: session.id,
+          role: 'player',
+          content: action
+        }
+      })
+
+      // Vytvoř system message s vysvětlením
+      const errorMessage = `❌ **Neplatná akce:** ${validation.reason}\n\nZkus něco jiného, co odpovídá schopnostem tvé postavy.`
+
+      await prisma.message.create({
+        data: {
+          sessionId: session.id,
+          role: 'system',
+          content: errorMessage,
+          metadata: {
+            validationFailed: true,
+            reason: validation.reason
+          }
+        }
+      })
+
+      // Vrať chybovou zprávu
+      return {
+        response: errorMessage,
+        metadata: {
+          validationFailed: true,
+          reason: validation.reason
+        } as any
+      }
+    }
+
+    console.log(`✅ Validace prošla${validation.detectedSpell ? ` - detekováno kouzlo: ${validation.detectedSpell.name}` : ''}`)
+
+    // 3. Ulož player message (validní akce)
     await prisma.message.create({
       data: {
         sessionId: session.id,
@@ -177,7 +225,7 @@ export async function processPlayerAction(
       }
     })
 
-    // 3. Sestav kontext pro AI (reverse messages - nejnovější poslední)
+    // 4. Sestav kontext pro AI (reverse messages - nejnovější poslední)
     const messagesForContext = [...session.messages].reverse()
     // Context je zatím prepared, ale přímo nepoužitý - bude využit v budoucích vylepšeních
     // const aiContext = contextService.buildContextForAI(
@@ -219,12 +267,22 @@ export async function processPlayerAction(
         metadata: {
           requiresDiceRoll: narratorResponse.requiresDiceRoll,
           diceRollType: narratorResponse.diceRollType,
+          diceRequirement: narratorResponse.diceRequirements, // Přidej dice requirement
           atmosphere: atmosphereData // Ulož atmosphere do message metadata
         }
       }
     })
 
-    // 7. Update session lastPlayedAt
+    // 7. ✨ POST-PROCESSING: Spotřebuj spell slot pokud bylo použito kouzlo
+    if (validation.detectedSpell && validation.detectedSpell.level > 0) {
+      await validationService.consumeSpellSlot(
+        characterId,
+        validation.detectedSpell.level
+      )
+      console.log(`⚡ Spell slot L${validation.detectedSpell.level} spotřebován pro ${validation.detectedSpell.name}`)
+    }
+
+    // 8. Update session lastPlayedAt
     await prisma.gameSession.update({
       where: { id: session.id },
       data: {

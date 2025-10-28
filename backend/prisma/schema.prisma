@@ -18,6 +18,7 @@ model User {
   // Relations
   characters      Character[]
   gameSessions    GameSession[]
+  geminiUsage     GeminiUsage[]
 
   // Meta
   isActive        Boolean       @default(true)
@@ -59,8 +60,11 @@ model Character {
   user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // Relations
-  gameSessions GameSession[]
-  inventory    Item[]
+  gameSessions    GameSession[]
+  inventory       Item[]
+  spellSlots      SpellSlot[]      @relation("CharacterSpellSlots")
+  knownSpells     KnownSpell[]     @relation("CharacterKnownSpells")
+  classFeatures   ClassFeature[]   @relation("CharacterClassFeatures")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -161,4 +165,75 @@ model WorldLocation {
 
   @@index([name])
   @@index([type])
+}
+
+// ═══════════════════════════════════════════════
+// SPELL MANAGEMENT MODELS
+// ═══════════════════════════════════════════════
+
+model SpellSlot {
+  id          String    @id @default(uuid())
+  characterId String
+  character   Character @relation("CharacterSpellSlots", fields: [characterId], references: [id], onDelete: Cascade)
+
+  level       Int       // 1-9 (spell level)
+  maximum     Int       // Maximum počet slotů pro tento level
+  current     Int       // Aktuálně dostupné sloty
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([characterId, level])
+  @@unique([characterId, level])
+}
+
+model KnownSpell {
+  id          String    @id @default(uuid())
+  characterId String
+  character   Character @relation("CharacterKnownSpells", fields: [characterId], references: [id], onDelete: Cascade)
+
+  spellName   String
+  spellLevel  Int       // 0-9 (0 = cantrip)
+  school      String    // evocation, conjuration, abjuration, transmutation, illusion, necromancy, divination, enchantment
+  description String    @db.Text
+
+  createdAt   DateTime  @default(now())
+
+  @@index([characterId])
+  @@unique([characterId, spellName])
+}
+
+model ClassFeature {
+  id          String    @id @default(uuid())
+  characterId String
+  character   Character @relation("CharacterClassFeatures", fields: [characterId], references: [id], onDelete: Cascade)
+
+  name        String
+  description String    @db.Text
+  unlockLevel Int       // Level na kterém se feature odemkne
+  usesPerRest Int?      // null = unlimited uses
+  currentUses Int?      // Aktuálně dostupné uses
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([characterId])
+}
+
+// ═══════════════════════════════════════════════
+// GEMINI API USAGE TRACKING
+// ═══════════════════════════════════════════════
+
+model GeminiUsage {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  operation   String   // "generateAction", "analyzeAtmosphere", "summarizeConversation", etc.
+  timestamp   DateTime @default(now())
+  success     Boolean  @default(true)
+  errorCode   String?  // "RESOURCE_EXHAUSTED", "INVALID_ARGUMENT", null
+
+  @@index([userId, timestamp])
+  @@index([timestamp])
 }

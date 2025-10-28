@@ -122,9 +122,17 @@ export interface Enemy {
 
 export type MessageRole = 'player' | 'narrator' | 'system'
 
+export interface DiceRequirement {
+  notation: string          // "1d20+5"
+  skillName?: string         // "perception", "insight", "attack"
+  difficultyClass?: number   // 15
+  description?: string       // "Hod na vnímání"
+}
+
 export interface NarratorResponse {
   content: string
   requiresDiceRoll?: boolean
   diceRollType?: string
+  diceRequirements?: DiceRequirement
   suggestedActions?: string[]
 }

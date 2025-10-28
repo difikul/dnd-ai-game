@@ -188,11 +188,22 @@ async function generateBackstory() {
 
     background.value = generatedBackstory
     console.log('✨ Backstory úspěšně vygenerován')
-  } catch (error) {
+  } catch (error: any) {
     console.error('Failed to generate backstory:', error)
-    backstoryError.value = error instanceof Error
-      ? error.message
-      : 'Chyba při generování příběhu. Zkuste to znovu.'
+
+    // Handle Gemini API quota exceeded (429)
+    if (error.response?.status === 429) {
+      const errorData = error.response?.data || {}
+      backstoryError.value =
+        `⚠️ ${errorData.message || 'Gemini API kvóta byla vyčerpána.'}\n\n` +
+        `💡 Řešení:\n` +
+        `• Přidejte si vlastní Gemini API klíč v nastavení profilu\n` +
+        `• Nebo počkejte ${errorData.retryAfter || '60s'} a zkuste znovu`
+    } else {
+      backstoryError.value = error instanceof Error
+        ? error.message
+        : 'Chyba při generování příběhu. Zkuste to znovu.'
+    }
   } finally {
     isGeneratingBackstory.value = false
   }

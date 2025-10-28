@@ -64,6 +64,22 @@ export async function startGame(req: Request, res: Response): Promise<void> {
       return
     }
 
+    // Handle Gemini API quota exceeded (429)
+    if (
+      error.status === 429 ||
+      error.message?.includes('quota') ||
+      error.message?.includes('RESOURCE_EXHAUSTED') ||
+      error.message?.includes('exceeded your current quota')
+    ) {
+      res.status(429).json({
+        error: 'Quota Exceeded',
+        message: 'Gemini API kvóta byla vyčerpána. Přidejte si vlastní API klíč v nastavení profilu nebo zkuste znovu později.',
+        retryAfter: 60,
+        helpUrl: '/profile'
+      })
+      return
+    }
+
     // Obecná chyba
     res.status(500).json({
       error: 'Internal Server Error',
@@ -140,6 +156,22 @@ export async function handleAction(req: Request, res: Response): Promise<void> {
       res.status(400).json({
         error: 'Bad Request',
         message: error.message
+      })
+      return
+    }
+
+    // Handle Gemini API quota exceeded (429)
+    if (
+      error.status === 429 ||
+      error.message?.includes('quota') ||
+      error.message?.includes('RESOURCE_EXHAUSTED') ||
+      error.message?.includes('exceeded your current quota')
+    ) {
+      res.status(429).json({
+        error: 'Quota Exceeded',
+        message: 'Gemini API kvóta byla vyčerpána. Přidejte si vlastní API klíč v nastavení profilu nebo zkuste znovu později.',
+        retryAfter: 60,
+        helpUrl: '/profile'
       })
       return
     }

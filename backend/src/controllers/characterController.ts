@@ -285,8 +285,25 @@ export async function generateBackstory(req: Request, res: Response): Promise<vo
       data: { backstory },
       message: 'Backstory byl úspěšně vygenerován'
     })
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error v generateBackstory controller:', error)
+
+    // Handle Gemini API quota exceeded (429)
+    if (
+      error.status === 429 ||
+      error.message?.includes('quota') ||
+      error.message?.includes('RESOURCE_EXHAUSTED') ||
+      error.message?.includes('exceeded your current quota')
+    ) {
+      res.status(429).json({
+        success: false,
+        error: 'Quota Exceeded',
+        message: 'Gemini API kvóta byla vyčerpána. Přidejte si vlastní API klíč v nastavení profilu nebo zkuste znovu později.',
+        retryAfter: 60,
+        helpUrl: '/profile'
+      })
+      return
+    }
 
     res.status(500).json({
       success: false,

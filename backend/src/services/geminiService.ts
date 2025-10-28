@@ -6,8 +6,85 @@ import {
   buildCombatPrompt,
   buildCharacterContext,
 } from '../utils/promptTemplates'
-import { NarratorResponse } from '../types/dnd.types'
+import { NarratorResponse, DiceRequirement } from '../types/dnd.types'
 import { getUserGeminiKey } from './authService'
+import { quotaService } from './quotaService'
+
+/**
+ * Wrapper function to track Gemini API usage
+ * @param operation - Name of the operation being tracked
+ * @param fn - Async function to wrap
+ * @returns Wrapped function with tracking
+ */
+function wrapWithTracking<T extends (...args: any[]) => Promise<any>>(
+  operation: string,
+  fn: T
+): T {
+  return (async (...args: any[]) => {
+    // Extract userId from first argument (convention: userId is always first)
+    const userId = args[0] as string
+
+    try {
+      const result = await fn(...args)
+
+      // Track successful request
+      await quotaService.trackUsage({
+        userId,
+        operation,
+        success: true
+      })
+
+      return result
+    } catch (error: any) {
+      // Extract error code from Gemini error
+      const errorCode = error.status === 429 ? 'RESOURCE_EXHAUSTED' : error.code || null
+
+      // Track failed request
+      await quotaService.trackUsage({
+        userId,
+        operation,
+        success: false,
+        errorCode
+      })
+
+      throw error
+    }
+  }) as T
+}
+
+/**
+ * Parse DICE-REQUIRED pattern from AI response
+ * Format: [DICE-REQUIRED: 1d20+3 perception dc:15 desc:"postřehnout past"]
+ */
+function parseDiceRequirement(diceString: string): DiceRequirement | null {
+  try {
+    // Extract parts
+    const parts = diceString.trim().split(/\s+/)
+
+    if (parts.length === 0) return null
+
+    const notation = parts[0] // "1d20+3"
+    const skillName = parts[1] || undefined // "perception"
+
+    // Extract DC (difficulty class)
+    const dcMatch = diceString.match(/dc:(\d+)/)
+    const difficultyClass = dcMatch ? parseInt(dcMatch[1]) : undefined
+
+    // Extract description
+    const descMatch = diceString.match(/desc:"([^"]+)"/)
+    const description = descMatch ? descMatch[1] : undefined
+
+    return {
+      notation,
+      skillName,
+      difficultyClass,
+      description
+    }
+  } catch (error) {
+    console.error('Failed to parse dice requirement:', error)
+    return null
+  }
+}
 
 /**
  * Service pro komunikaci s Gemini AI jako D&D Dungeon Master
@@ -82,13 +159,18 @@ class GeminiService {
     })
 
     // Parse response for dice rolls
-    const requiresDiceRoll = responseText.includes('[DICE:')
+    const requiresDiceRoll = responseText.includes('[DICE-REQUIRED:')
     let diceType: string | undefined
+    let diceRequirements: DiceRequirement | undefined
 
     if (requiresDiceRoll) {
-      const diceMatch = responseText.match(/\[DICE:\s*([^\]]+)\]/)
+      const diceMatch = responseText.match(/\[DICE-REQUIRED:\s*([^\]]+)\]/)
       if (diceMatch) {
-        diceType = diceMatch[1].trim()
+        const parsed = parseDiceRequirement(diceMatch[1])
+        if (parsed) {
+          diceRequirements = parsed
+          diceType = parsed.skillName || 'roll'
+        }
       }
     }
 
@@ -96,6 +178,7 @@ class GeminiService {
       content: responseText,
       requiresDiceRoll,
       diceRollType: diceType,
+      diceRequirements,
     }
   }
 
@@ -304,5 +387,17 @@ JSON odpověď:`;
   }
 }
 
-// Export singleton instance
-export const geminiService = new GeminiService()
+// Create singleton instance
+const geminiServiceInstance = new GeminiService()
+
+// Wrap public methods with tracking
+export const geminiService = {
+  generateGameStart: wrapWithTracking('generateGameStart', geminiServiceInstance.generateGameStart.bind(geminiServiceInstance)),
+  generateNarratorResponse: wrapWithTracking('generateNarratorResponse', geminiServiceInstance.generateNarratorResponse.bind(geminiServiceInstance)),
+  generateCombatResponse: wrapWithTracking('generateCombatResponse', geminiServiceInstance.generateCombatResponse.bind(geminiServiceInstance)),
+  testConnection: wrapWithTracking('testConnection', geminiServiceInstance.testConnection.bind(geminiServiceInstance)),
+  summarizeConversation: wrapWithTracking('summarizeConversation', geminiServiceInstance.summarizeConversation.bind(geminiServiceInstance)),
+  generateNPCDialog: wrapWithTracking('generateNPCDialog', geminiServiceInstance.generateNPCDialog.bind(geminiServiceInstance)),
+  generateCharacterBackstory: wrapWithTracking('generateCharacterBackstory', geminiServiceInstance.generateCharacterBackstory.bind(geminiServiceInstance)),
+  analyzeAtmosphere: wrapWithTracking('analyzeAtmosphere', geminiServiceInstance.analyzeAtmosphere.bind(geminiServiceInstance))
+}

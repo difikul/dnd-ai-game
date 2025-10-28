@@ -10,8 +10,27 @@
       <div
         class="text-base whitespace-pre-wrap leading-relaxed break-words"
         style="word-wrap: break-word; overflow-wrap: anywhere;"
-        v-html="formattedContent"
-      />
+      >
+        <template v-for="(fragment, index) in parsedContent" :key="index">
+          <!-- Text fragment (formatted with markdown) -->
+          <span v-if="fragment.type === 'text'" v-html="formatTextFragment(fragment.content)" />
+
+          <!-- Dice-required fragment (clickable button) -->
+          <button
+            v-else-if="fragment.type === 'dice-required'"
+            @click="handleDiceClick(fragment.requirement)"
+            class="inline-block font-mono bg-primary-900 bg-opacity-50 px-3 py-2 rounded
+                   text-primary-300 mx-1 border border-primary-700 animate-pulse
+                   hover:bg-primary-800 hover:scale-105 hover:shadow-lg
+                   transition-all duration-200 cursor-pointer
+                   focus:outline-none focus:ring-2 focus:ring-primary-500"
+            :title="`Klikni pro automatický hod: ${fragment.requirement.notation}${fragment.requirement.skillName ? ' na ' + fragment.requirement.skillName : ''}${fragment.requirement.difficultyClass ? ' (DC ' + fragment.requirement.difficultyClass + ')' : ''}`"
+          >
+            🎲 {{ fragment.rawText }}
+            <span class="text-xs text-primary-500 ml-2">(klikni pro hod)</span>
+          </button>
+        </template>
+      </div>
 
       <!-- Metadata: Dice Rolls -->
       <div v-if="message.metadata?.diceRolls" class="mt-4 space-y-2">
@@ -56,13 +75,21 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { Message } from '@/types/game'
+import type { Message, DiceRequirement } from '@/types/game'
 
 interface Props {
   message: Message
 }
 
+// Content fragment types for rendering
+type ContentFragment =
+  | { type: 'text'; content: string }
+  | { type: 'dice-required'; rawText: string; requirement: DiceRequirement }
+
 const props = defineProps<Props>()
+const emit = defineEmits<{
+  'dice-click': [requirement: DiceRequirement]
+}>()
 
 const containerClass = computed(() => {
   if (props.message.role === 'player') {
@@ -95,9 +122,96 @@ const roleLabel = computed(() => {
   return labels[props.message.role]
 })
 
-const formattedContent = computed(() => {
-  let content = props.message.content
+/**
+ * Parse DICE-REQUIRED string into DiceRequirement object
+ * Example: "1d20+4 acrobatics dc:12 desc:\"útěk z hospody\""
+ */
+function parseDiceRequirement(text: string): DiceRequirement {
+  // Regex pattern: notation skill? dc:X? desc:"..."?
+  // Example matches:
+  // - "1d20+4 acrobatics dc:12 desc:\"útěk\""
+  // - "1d20+5 attack"
+  // - "2d6+3"
+  const match = text.match(/^(\S+)(?:\s+(\w+))?(?:\s+dc:(\d+))?(?:\s+desc:"([^"]+)")?/)
 
+  if (!match) {
+    console.warn('Failed to parse DICE-REQUIRED:', text)
+    // Fallback: just use the raw text as notation
+    return { notation: text.trim() }
+  }
+
+  return {
+    notation: match[1],
+    skillName: match[2] || undefined,
+    difficultyClass: match[3] ? parseInt(match[3]) : undefined,
+    description: match[4] || undefined
+  }
+}
+
+/**
+ * Parse message content into fragments (text and dice-required blocks)
+ */
+function parseContentFragments(content: string): ContentFragment[] {
+  const fragments: ContentFragment[] = []
+  const regex = /\[DICE-REQUIRED:\s*([^\]]+)\]/g
+  let lastIndex = 0
+  let match: RegExpExecArray | null
+
+  while ((match = regex.exec(content)) !== null) {
+    // Add text fragment before the dice requirement
+    if (match.index > lastIndex) {
+      fragments.push({
+        type: 'text',
+        content: content.substring(lastIndex, match.index)
+      })
+    }
+
+    // Add dice-required fragment
+    const rawText = match[1] // e.g., "1d20+4 acrobatics dc:12 desc:\"útěk\""
+    fragments.push({
+      type: 'dice-required',
+      rawText,
+      requirement: parseDiceRequirement(rawText)
+    })
+
+    lastIndex = regex.lastIndex
+  }
+
+  // Add remaining text after last match
+  if (lastIndex < content.length) {
+    fragments.push({
+      type: 'text',
+      content: content.substring(lastIndex)
+    })
+  }
+
+  // If no dice requirements found, return single text fragment
+  if (fragments.length === 0) {
+    fragments.push({ type: 'text', content })
+  }
+
+  return fragments
+}
+
+/**
+ * Parsed content as fragments for rendering
+ */
+const parsedContent = computed(() => {
+  return parseContentFragments(props.message.content)
+})
+
+/**
+ * Handle dice requirement click
+ */
+function handleDiceClick(requirement: DiceRequirement) {
+  emit('dice-click', requirement)
+}
+
+/**
+ * Format text fragments (non-dice content) with markdown and patterns
+ * This is applied to text fragments only, not dice-required fragments
+ */
+function formatTextFragment(content: string): string {
   // Parse [DICE: 1d20+5] patterns and format them
   content = content.replace(
     /\[DICE:\s*([^\]]+)\]/g,
@@ -129,7 +243,7 @@ const formattedContent = computed(() => {
   content = content.replace(/\*([^*]+)\*/g, '<em>$1</em>')
 
   return content
-})
+}
 
 function formatTime(date: Date): string {
   return new Date(date).toLocaleTimeString('cs-CZ', {

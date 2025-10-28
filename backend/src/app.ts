@@ -9,6 +9,8 @@ import characterRoutes from './routes/character.routes'
 import gameRoutes from './routes/game.routes'
 import diceRoutes from './routes/dice.routes'
 import saveRoutes from './routes/save.routes'
+import restRoutes from './routes/rest.routes'
+import quotaRoutes from './routes/quota.routes'
 
 const app = express()
 
@@ -48,6 +50,8 @@ app.use('/api/characters', characterRoutes)
 app.use('/api/game', gameRoutes)
 app.use('/api/dice', diceRoutes)
 app.use('/api/saves', saveRoutes)
+app.use('/api/rest', restRoutes)
+app.use('/api', quotaRoutes)
 
 app.get('/api', (req, res) => {
   res.json({
@@ -92,6 +96,10 @@ app.get('/api', (req, res) => {
         loadByToken: 'GET /api/saves/token/:token',
         delete: 'DELETE /api/saves/:sessionId',
         regenerateToken: 'POST /api/saves/:sessionId/regenerate-token'
+      },
+      rest: {
+        longRest: 'POST /api/rest/long-rest/:sessionId (requires auth)',
+        shortRest: 'POST /api/rest/short-rest/:sessionId (requires auth)'
       },
       narrator: '/api/narrator (TODO)'
     }

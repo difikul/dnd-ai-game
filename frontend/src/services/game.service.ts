@@ -12,6 +12,7 @@ import type {
   LoadGameResponse,
   SaveGameRequest,
   SaveGameResponse,
+  SavedGameListItem,
 } from '@/types/game'
 
 class GameService {
@@ -62,7 +63,7 @@ class GameService {
    * @returns Complete game state
    */
   async loadGameByToken(sessionToken: string): Promise<LoadGameResponse> {
-    const response = await api.get<{ success: boolean; data: LoadGameResponse }>(`/api/game/load/${sessionToken}`)
+    const response = await api.get<{ success: boolean; data: LoadGameResponse }>(`/api/saves/token/${sessionToken}`)
     return response.data.data
   }
 
@@ -73,8 +74,11 @@ class GameService {
    * @returns Save confirmation with token
    */
   async saveGame(sessionId: string, note?: string): Promise<SaveGameResponse> {
-    const payload: SaveGameRequest = { sessionId, note }
-    const response = await api.post<{ success: boolean; data: SaveGameResponse }>('/api/game/save', payload)
+    const payload = note ? { note } : {}
+    const response = await api.post<{ success: boolean; data: SaveGameResponse }>(
+      `/api/saves/${sessionId}`,
+      payload
+    )
     return response.data.data
   }
 
@@ -90,8 +94,8 @@ class GameService {
    * Get all saved games for current user
    * @returns List of saved game sessions
    */
-  async getSavedGames(): Promise<LoadGameResponse[]> {
-    const response = await api.get<{ success: boolean; data: LoadGameResponse[] }>('/api/game/saves')
+  async getSavedGames(): Promise<SavedGameListItem[]> {
+    const response = await api.get<{ success: boolean; data: SavedGameListItem[] }>('/api/saves')
     return response.data.data
   }
 
@@ -100,7 +104,7 @@ class GameService {
    * @param sessionId - Session ID to delete
    */
   async deleteGame(sessionId: string): Promise<void> {
-    await api.delete(`/api/game/session/${sessionId}`)
+    await api.delete(`/api/saves/${sessionId}`)
   }
 }
 

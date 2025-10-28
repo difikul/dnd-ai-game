@@ -66,9 +66,18 @@ export interface Message {
   createdAt: Date
 }
 
+// Dice Requirement Interface (from AI)
+export interface DiceRequirement {
+  notation: string          // "1d20+5"
+  skillName?: string         // "perception", "insight", "attack"
+  difficultyClass?: number   // 15
+  description?: string       // "Hod na vnímání"
+}
+
 // Message Metadata Interface
 export interface MessageMetadata {
   diceRolls?: DiceRoll[]
+  diceRequirement?: DiceRequirement  // AI požaduje hod kostkou
   skillCheck?: SkillCheck
   combat?: CombatEvent
   npcInteraction?: NPCInteraction
@@ -78,10 +87,14 @@ export interface MessageMetadata {
 // Dice Roll Interface
 export interface DiceRoll {
   notation: string // e.g., "1d20+5"
-  result: number
+  total: number // Celkový výsledek hodu (align s backendem)
   rolls: number[]
   modifier: number
   type?: 'attack' | 'damage' | 'skill' | 'saving-throw'
+  sides?: number // Počet stran kostky (d20 → 20)
+  count?: number // Počet kostek (3d6 → 3)
+  advantage?: boolean
+  disadvantage?: boolean
 }
 
 // Skill Check Interface
@@ -154,10 +167,22 @@ export interface LoadGameResponse {
   messages: Message[]
 }
 
+// Saved Game List Item (for listing saved games)
+export interface SavedGameListItem {
+  sessionId: string
+  sessionToken: string
+  characterName: string
+  characterLevel: number
+  currentLocation: string
+  lastPlayedAt: Date
+  createdAt: Date
+  isActive: boolean
+  messageCount: number
+}
+
 // Save Game Request
 export interface SaveGameRequest {
-  sessionId: string
-  note?: string
+  note?: string  // sessionId is now passed as URL parameter, not in body
 }
 
 // Save Game Response

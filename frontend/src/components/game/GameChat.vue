@@ -24,6 +24,7 @@
           v-for="message in messages"
           :key="message.id"
           :message="message"
+          @dice-click="handleDiceClick"
         />
 
         <!-- Typing Indicator -->
@@ -88,8 +89,14 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, onMounted } from 'vue'
 import { useChatStore } from '@/stores/chatStore'
+import type { DiceRequirement } from '@/types/game'
 import MessageBubble from './MessageBubble.vue'
 import TypingIndicator from './TypingIndicator.vue'
+
+// Emit events to parent (GameView)
+const emit = defineEmits<{
+  'dice-click': [requirement: DiceRequirement]
+}>()
 
 const chatStore = useChatStore()
 const messageContainer = ref<HTMLElement>()
@@ -102,6 +109,15 @@ const isTyping = computed(() => chatStore.isTyping)
 const error = computed(() => chatStore.error)
 const hasMessages = computed(() => chatStore.hasMessages)
 const messageCount = computed(() => chatStore.messageCount)
+
+/**
+ * Handle dice click from MessageBubble
+ * Propagate event to parent (GameView)
+ */
+function handleDiceClick(requirement: DiceRequirement) {
+  console.log('📨 GameChat: Propagating dice-click event to GameView', requirement)
+  emit('dice-click', requirement)
+}
 
 /**
  * Handle send message

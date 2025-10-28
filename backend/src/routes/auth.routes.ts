@@ -6,12 +6,17 @@ import rateLimit from 'express-rate-limit'
 const router = Router()
 
 // Rate limiter for auth endpoints (prevent brute force)
+// In development: 50 attempts per 5 minutes
+// In production: 5 attempts per 15 minutes
+const isDevelopment = process.env.NODE_ENV === 'development'
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // 5 attempts per window
+  windowMs: isDevelopment ? 5 * 60 * 1000 : 15 * 60 * 1000, // 5 or 15 minutes
+  max: isDevelopment ? 50 : 5, // 50 or 5 attempts per window
   message: {
     success: false,
-    message: 'Příliš mnoho pokusů, zkuste to znovu za 15 minut',
+    message: isDevelopment
+      ? 'Příliš mnoho pokusů, zkuste to znovu za 5 minut'
+      : 'Příliš mnoho pokusů, zkuste to znovu za 15 minut',
   },
   standardHeaders: true,
   legacyHeaders: false,

@@ -99,23 +99,16 @@
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
         <div
           v-for="game in savedGames"
-          :key="game.session.id"
+          :key="game.sessionId"
           class="bg-dark-800 border border-dark-700 rounded-lg p-6 hover:border-primary-500/50 transition-all duration-300 group"
         >
           <!-- Character Info -->
           <div class="mb-4">
             <h3 class="text-xl font-display text-primary-400 group-hover:text-primary-300 transition mb-2">
-              {{ game.character.name }}
+              {{ game.characterName }}
             </h3>
             <div class="flex items-center gap-2 text-sm text-gray-400 mb-1">
-              <span>Level {{ game.character.level }}</span>
-              <span>•</span>
-              <span>{{ game.character.race }}</span>
-              <span>•</span>
-              <span>{{ game.character.class }}</span>
-            </div>
-            <div class="text-sm text-gray-500">
-              <span>HP: {{ game.character.hitPoints || 0 }}</span>
+              <span>Level {{ game.characterLevel }}</span>
             </div>
           </div>
 
@@ -123,22 +116,22 @@
           <div class="mb-4 space-y-1">
             <div class="flex items-start gap-2 text-sm">
               <span class="text-gray-500">📍</span>
-              <span class="text-gray-300 flex-1">{{ game.session.currentLocation || 'Neznámá lokace' }}</span>
+              <span class="text-gray-300 flex-1">{{ game.currentLocation || 'Neznámá lokace' }}</span>
             </div>
             <div class="flex items-start gap-2 text-sm">
               <span class="text-gray-500">🕐</span>
-              <span class="text-gray-400">{{ formatDate(game.session.lastPlayedAt) }}</span>
+              <span class="text-gray-400">{{ formatDate(game.lastPlayedAt) }}</span>
             </div>
             <div class="flex items-start gap-2 text-sm">
               <span class="text-gray-500">💬</span>
-              <span class="text-gray-400">{{ game.messages.length }} zpráv</span>
+              <span class="text-gray-400">{{ game.messageCount }} zpráv</span>
             </div>
           </div>
 
           <!-- Status Badge -->
           <div class="mb-4">
             <span
-              v-if="game.session.isActive"
+              v-if="game.isActive"
               class="inline-flex items-center gap-1 px-2 py-1 bg-green-900/30 border border-green-700 text-green-400 text-xs rounded"
             >
               <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
@@ -156,17 +149,17 @@
           <!-- Actions -->
           <div class="flex gap-2">
             <button
-              @click="handleLoadGame(game.session.sessionToken)"
+              @click="handleLoadGame(game.sessionToken)"
               class="flex-1 px-4 py-2 bg-primary-500 hover:bg-primary-600 rounded-lg font-semibold transition"
             >
               Načíst
             </button>
             <button
-              @click="handleCopyToken(game.session.sessionToken)"
+              @click="handleCopyToken(game.sessionToken)"
               class="px-4 py-2 bg-dark-700 hover:bg-dark-600 rounded-lg transition"
-              :title="copiedToken === game.session.sessionToken ? 'Zkopírováno!' : 'Kopírovat token'"
+              :title="copiedToken === game.sessionToken ? 'Zkopírováno!' : 'Kopírovat token'"
             >
-              {{ copiedToken === game.session.sessionToken ? '✓' : '📋' }}
+              {{ copiedToken === game.sessionToken ? '✓' : '📋' }}
             </button>
             <button
               @click="handleDeleteGame(game)"
@@ -194,7 +187,7 @@
             Opravdu chceš smazat hru s postavou:
           </p>
           <p class="text-primary-400 font-semibold mb-4">
-            {{ deleteConfirmGame.character.name }}
+            {{ deleteConfirmGame.characterName }}
           </p>
           <p class="text-gray-400 text-sm mb-6">
             Tuto akci nelze vrátit zpět.
@@ -227,7 +220,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useGameStore } from '@/stores/gameStore'
 import { storeToRefs } from 'pinia'
-import type { LoadGameResponse } from '@/types/game'
+import type { SavedGameListItem } from '@/types/game'
 
 const router = useRouter()
 const gameStore = useGameStore()
@@ -235,7 +228,7 @@ const { savedGames, loading, error } = storeToRefs(gameStore)
 
 // Local state
 const copiedToken = ref<string | null>(null)
-const deleteConfirmGame = ref<LoadGameResponse | null>(null)
+const deleteConfirmGame = ref<SavedGameListItem | null>(null)
 const deleting = ref(false)
 
 /**
@@ -293,7 +286,7 @@ async function handleCopyToken(token: string) {
 /**
  * Show delete confirmation
  */
-function handleDeleteGame(game: LoadGameResponse) {
+function handleDeleteGame(game: SavedGameListItem) {
   deleteConfirmGame.value = game
 }
 
@@ -305,7 +298,7 @@ async function confirmDelete() {
 
   deleting.value = true
   try {
-    await gameStore.deleteGame(deleteConfirmGame.value.session.id)
+    await gameStore.deleteGame(deleteConfirmGame.value.sessionId)
     deleteConfirmGame.value = null
   } catch (err: any) {
     alert(`Chyba při mazání hry: ${err.message}`)

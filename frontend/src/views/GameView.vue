@@ -3,6 +3,9 @@
     <!-- Atmospheric Background -->
     <AtmosphericBackground />
 
+    <!-- API Quota Status Bar -->
+    <ApiQuotaStatusBar />
+
     <!-- Loading State -->
     <div
       v-if="loading"
@@ -132,7 +135,7 @@
 
         <!-- Chat Area -->
         <div class="flex-1 overflow-hidden">
-          <GameChat />
+          <GameChat @dice-click="handleDiceClickFromChat" />
         </div>
       </main>
     </div>
@@ -181,7 +184,10 @@
         @click.self="showDiceRoller = false"
       >
         <div class="max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-          <DiceRoller />
+          <DiceRoller
+            :requirement="chatStore.lastDiceRequirement ?? undefined"
+            @roll-result="handleDiceRollResult"
+          />
           <button
             @click="showDiceRoller = false"
             class="mt-4 w-full bg-dark-700 hover:bg-dark-600 px-4 py-2 rounded transition text-white"
@@ -195,21 +201,25 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useGameStore } from '@/stores/gameStore'
 import { useCharacterStore } from '@/stores/characterStore'
 import { useChatStore } from '@/stores/chatStore'
+import { useDice } from '@/composables/useDice'
+import type { DiceRequirement } from '@/types/game'
 import GameChat from '@/components/game/GameChat.vue'
 import CharacterSheet from '@/components/character/CharacterSheet.vue'
 import DiceRoller from '@/components/game/DiceRoller.vue'
 import AtmosphericBackground from '@/components/game/AtmosphericBackground.vue'
+import ApiQuotaStatusBar from '@/components/game/ApiQuotaStatusBar.vue'
 
 const route = useRoute()
 const router = useRouter()
 const gameStore = useGameStore()
 const characterStore = useCharacterStore()
 const chatStore = useChatStore()
+const { rollDice, isRolling: isDiceRolling } = useDice()
 
 // State
 const loading = ref(true)
@@ -279,6 +289,60 @@ async function copyToken() {
   } catch (err) {
     console.error('Failed to copy token:', err)
     alert('Nepodařilo se zkopírovat token')
+  }
+}
+
+/**
+ * Handle dice click from chat message (inline dice requirement)
+ * Performs immediate dice roll and submits result to chat
+ */
+async function handleDiceClickFromChat(requirement: DiceRequirement) {
+  try {
+    console.log('🎲 Hráč klikl na dice requirement:', requirement)
+
+    // Perform dice roll via API
+    const roll = await rollDice(requirement.notation, false, false)
+
+    if (!roll) {
+      throw new Error('Hod kostkou selhal')
+    }
+
+    console.log('🎲 Výsledek hodu:', roll)
+
+    // Submit result to chat with requirement context
+    await chatStore.submitDiceResult({
+      ...roll,
+      // Add requirement context for better formatting
+      skillName: requirement.skillName,
+      difficultyClass: requirement.difficultyClass,
+      description: requirement.description
+    } as any)
+
+    console.log('✅ Výsledek hodu byl úspěšně odeslán')
+  } catch (err: any) {
+    console.error('❌ Chyba při automatickém hodu kostkou:', err)
+    alert(`Chyba při hodu kostkou: ${err.message}`)
+  }
+}
+
+/**
+ * Handle dice roll result from DiceRoller component
+ * Submits the roll result to the chat and closes the modal
+ */
+async function handleDiceRollResult(roll: any) {
+  try {
+    console.log('🎲 Hod kostkou dokončen, odesílám výsledek do konverzace:', roll)
+
+    // Submit dice roll result to chat
+    await chatStore.submitDiceResult(roll)
+
+    // Close the dice roller modal
+    showDiceRoller.value = false
+
+    console.log('✅ Výsledek hodu byl úspěšně odeslán')
+  } catch (err: any) {
+    console.error('❌ Chyba při odesílání výsledku hodu:', err)
+    alert(`Chyba při odesílání výsledku hodu: ${err.message}`)
   }
 }
 

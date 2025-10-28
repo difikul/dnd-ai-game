@@ -7,6 +7,11 @@ import { Character } from '@prisma/client'
 import { CharacterStats, CharacterModifiers, CharacterClass } from '../types/dnd.types'
 import { CreateCharacterRequest, UpdateCharacterRequest } from '../types/api.types'
 import { prisma } from '../config/database'
+import {
+  isSpellcaster,
+  getInitialSpellsForCharacter,
+  getSpellSlotsForLevel
+} from '../constants/spells'
 
 // ============================================================================
 // D&D 5e Constants - Hit Dice podle třídy
@@ -142,6 +147,9 @@ export async function createCharacter(
       }
     })
 
+    // Inicializuj spells a spell sloty pokud je to spellcaster
+    await initializeCharacterSpells(character.id, data.class, level)
+
     return character
   } catch (error) {
     console.error('Chyba při vytváření postavy:', error)
@@ -167,6 +175,21 @@ export async function getCharacter(
         inventory: {
           orderBy: {
             createdAt: 'desc'
+          }
+        },
+        knownSpells: {
+          orderBy: {
+            spellLevel: 'asc'
+          }
+        },
+        spellSlots: {
+          orderBy: {
+            level: 'asc'
+          }
+        },
+        classFeatures: {
+          orderBy: {
+            unlockLevel: 'asc'
           }
         }
       }
@@ -362,6 +385,62 @@ export async function modifyHP(
     console.error('Chyba při úpravě HP:', error)
     throw error
   }
+}
+
+/**
+ * Inicializuje spells a spell sloty pro nově vytvořenou postavu
+ * Volá se automaticky při createCharacter pro spellcaster třídy
+ */
+async function initializeCharacterSpells(
+  characterId: string,
+  className: string,
+  level: number
+): Promise<void> {
+  console.log(`🔮 Inicializuji spells pro ${className} level ${level}`)
+
+  // Kontrola zda je to spellcaster
+  if (!isSpellcaster(className)) {
+    console.log(`   ℹ️  ${className} není spellcaster - přeskakuji spell initialization`)
+    return
+  }
+
+  // Získej počáteční kouzla pro třídu
+  const initialSpells = getInitialSpellsForCharacter(className, level)
+
+  console.log(`   📚 Přidávám ${initialSpells.length} počátečních kouzel`)
+
+  // Vytvoř KnownSpell záznamy
+  for (const spell of initialSpells) {
+    await prisma.knownSpell.create({
+      data: {
+        characterId,
+        spellName: spell.name,
+        spellLevel: spell.level,
+        school: spell.school,
+        description: spell.description
+      }
+    })
+  }
+
+  // Získej spell sloty pro level
+  const spellSlots = getSpellSlotsForLevel(className, level)
+  const slotLevels = Object.keys(spellSlots).length
+
+  console.log(`   ⚡ Přidávám spell sloty pro ${slotLevels} úrovní kouzel`)
+
+  // Vytvoř SpellSlot záznamy
+  for (const [spellLevel, maxSlots] of Object.entries(spellSlots)) {
+    await prisma.spellSlot.create({
+      data: {
+        characterId,
+        level: parseInt(spellLevel),
+        maximum: maxSlots,
+        current: maxSlots // Začíná s plnými sloty
+      }
+    })
+  }
+
+  console.log(`   ✅ Spell initialization dokončena`)
 }
 
 // ============================================================================

@@ -66,25 +66,28 @@ watch(() => atmosphereStore.hasBackground, (newVal) => {
 }, { immediate: true })
 </script>
 
-<style scoped>
+<style>
+/* REMOVED scoped to fix potential isolation issues */
 .atmospheric-background {
-  position: fixed;
-  inset: 0;
-  z-index: 0; /* Changed from -1 to 0 - under content but visible */
-  overflow: hidden;
-  background-color: #0a0a0f; /* Fallback dark color */
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 1 !important; /* Increased from 0 to 1 */
+  overflow: hidden !important;
+  background-color: #0a0a0f !important; /* Fallback dark color */
+  pointer-events: none !important;
 }
 
 /* Background Layers */
 .background-layer {
-  position: absolute;
-  inset: 0;
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  filter: blur(4px); /* Subtle blur for depth */
-  transform: scale(1.05); /* Slight zoom to hide blur edges */
-  transition: opacity 2s ease-in-out, filter 2s ease-in-out;
+  position: absolute !important;
+  inset: 0 !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  filter: blur(4px) !important; /* Subtle blur for depth */
+  transform: scale(1.05) !important; /* Slight zoom to hide blur edges */
+  transition: opacity 2s ease-in-out, filter 2s ease-in-out !important;
+  pointer-events: auto !important;
 }
 
 .background-layer.fade-in {

@@ -119,15 +119,7 @@
               :disabled="authStore.isLoading"
             />
             <p class="text-gray-500 text-xs mt-2">
-              API klíč musí začínat "AIzaSy". Získejte ho na
-              <a
-                href="https://makersuite.google.com/app/apikey"
-                target="_blank"
-                class="text-gold-400 hover:text-gold-300 underline"
-              >
-                Google AI Studio
-              </a>
-              (zdarma)
+              API klíč musí začínat "AIzaSy"
             </p>
           </div>
 
@@ -173,6 +165,18 @@
             </button>
           </div>
         </form>
+
+        <!-- Návod na získání API klíče -->
+        <div class="mt-6 bg-dark-800/50 border border-gold-600/20 rounded-lg p-4">
+          <p class="text-gray-400 text-xs text-center mb-2">
+            <strong class="text-gold-400">Jak získat Gemini API klíč?</strong>
+          </p>
+          <ol class="text-gray-400 text-xs space-y-1 list-decimal list-inside">
+            <li>Navštivte <a href="https://makersuite.google.com/app/apikey" target="_blank" class="text-gold-400 hover:underline">Google AI Studio</a></li>
+            <li>Vytvořte nový API klíč (zdarma)</li>
+            <li>Zkopírujte klíč a vložte ho sem</li>
+          </ol>
+        </div>
 
         <!-- Informace o bezpečnosti -->
         <div class="mt-6 bg-dark-900/50 border border-gold-600/20 rounded-lg p-4">

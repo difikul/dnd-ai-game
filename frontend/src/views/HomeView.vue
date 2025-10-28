@@ -10,12 +10,21 @@
             ⚠️ Chybí Gemini API klíč
           </span>
         </div>
-        <button
-          @click="handleLogout"
-          class="px-4 py-2 bg-dark-700 hover:bg-dark-600 text-gray-300 hover:text-white text-sm rounded-lg transition-colors"
-        >
-          Odhlásit se
-        </button>
+        <div class="flex gap-2">
+          <button
+            @click="router.push('/profile')"
+            class="px-4 py-2 bg-dark-700 hover:bg-dark-600 text-gray-300 hover:text-white text-sm rounded-lg transition-colors flex items-center gap-2"
+          >
+            <span>⚙️</span>
+            <span>Profil</span>
+          </button>
+          <button
+            @click="handleLogout"
+            class="px-4 py-2 bg-dark-700 hover:bg-dark-600 text-gray-300 hover:text-white text-sm rounded-lg transition-colors"
+          >
+            Odhlásit se
+          </button>
+        </div>
       </div>
 
       <!-- Header -->

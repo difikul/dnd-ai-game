@@ -89,7 +89,13 @@
       <!-- Info o API klíči -->
       <div class="mt-6 bg-dark-800/50 border border-gold-600/20 rounded-lg p-4">
         <p class="text-gray-400 text-xs text-center">
-          💡 Po přihlášení si nezapomeňte nastavit svůj Gemini API klíč v nastavení profilu
+          💡 Po přihlášení si můžete nastavit svůj Gemini API klíč v
+          <router-link
+            to="/profile"
+            class="text-gold-400 hover:text-gold-300 font-medium underline"
+          >
+            nastavení profilu
+          </router-link>
         </p>
       </div>
     </div>

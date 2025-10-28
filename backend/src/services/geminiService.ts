@@ -1,5 +1,5 @@
 import { Character, Message } from '@prisma/client'
-import { getModel, withRetry } from '../config/gemini'
+import { getUserGenAI, getUserModel, withRetry } from '../config/gemini'
 import {
   buildGameStartPrompt,
   buildActionPrompt,
@@ -7,22 +7,42 @@ import {
   buildCharacterContext,
 } from '../utils/promptTemplates'
 import { NarratorResponse } from '../types/dnd.types'
+import { getUserGeminiKey } from './authService'
 
 /**
  * Service pro komunikaci s Gemini AI jako D&D Dungeon Master
+ * Multi-user: Každý uživatel používá svůj vlastní Gemini API klíč
  */
 class GeminiService {
+  /**
+   * Get user's Gemini model instance
+   * @private
+   */
+  private async getUserModelInstance(userId: string) {
+    const apiKey = await getUserGeminiKey(userId)
+
+    if (!apiKey) {
+      throw new Error(
+        'Nemáte nastavený Gemini API klíč. Přidejte jej v profilu: PUT /api/auth/gemini-key'
+      )
+    }
+
+    const genAI = getUserGenAI(apiKey)
+    return getUserModel(genAI)
+  }
+
   /**
    * Vytvoří úvodní narrator response pro novou hru
    */
   async generateGameStart(
+    userId: string,
     character: Character,
     startingLocation: string = 'Bree'
   ): Promise<string> {
     const prompt = buildGameStartPrompt(character, startingLocation)
 
     return await withRetry(async () => {
-      const model = getModel()
+      const model = await this.getUserModelInstance(userId)
       const result = await model.generateContent(prompt)
       const response = await result.response
       return response.text()
@@ -33,6 +53,7 @@ class GeminiService {
    * Generuje narrator response na akci hráče
    */
   async generateNarratorResponse(
+    userId: string,
     playerAction: string,
     character: Character,
     conversationHistory: Message[],
@@ -54,7 +75,7 @@ class GeminiService {
     )
 
     const responseText = await withRetry(async () => {
-      const model = getModel()
+      const model = await this.getUserModelInstance(userId)
       const result = await model.generateContent(prompt)
       const response = await result.response
       return response.text()
@@ -82,6 +103,7 @@ class GeminiService {
    * Generuje response pro combat situaci
    */
   async generateCombatResponse(
+    userId: string,
     playerAction: string,
     character: Character,
     combatState: any
@@ -89,7 +111,7 @@ class GeminiService {
     const prompt = buildCombatPrompt(character, combatState, playerAction)
 
     return await withRetry(async () => {
-      const model = getModel()
+      const model = await this.getUserModelInstance(userId)
       const result = await model.generateContent(prompt)
       const response = await result.response
       return response.text()
@@ -98,12 +120,16 @@ class GeminiService {
 
   /**
    * Testuje Gemini connection s jednoduchým promptem
+   * Pro testing purposes (používá user API key)
    */
-  async testConnection(testPrompt: string = 'Řekni mi krátký fantasy příběh v češtině.'): Promise<string> {
-    console.log('🧪 Testing Gemini API connection...')
+  async testConnection(
+    userId: string,
+    testPrompt: string = 'Řekni mi krátký fantasy příběh v češtině.'
+  ): Promise<string> {
+    console.log('🧪 Testing Gemini API connection for user:', userId)
 
     try {
-      const model = getModel()
+      const model = await this.getUserModelInstance(userId)
       const result = await model.generateContent(testPrompt)
       const response = await result.response
       const text = response.text()
@@ -121,7 +147,10 @@ class GeminiService {
   /**
    * Vytvoří shrnutí dlouhé konverzace
    */
-  async summarizeConversation(messages: Message[]): Promise<string> {
+  async summarizeConversation(
+    userId: string,
+    messages: Message[]
+  ): Promise<string> {
     const messageTexts = messages.map((msg) => `[${msg.role}]: ${msg.content}`)
 
     const prompt = `Následující zprávy představují část D&D herní session. Shrň klíčové události, důležité informace a aktuální stav příběhu do 2-3 vět:
@@ -131,7 +160,7 @@ ${messageTexts.join('\n\n')}
 Shrnutí:`;
 
     return await withRetry(async () => {
-      const model = getModel()
+      const model = await this.getUserModelInstance(userId)
       const result = await model.generateContent(prompt)
       const response = await result.response
       return response.text()
@@ -142,6 +171,7 @@ Shrnutí:`;
    * Generuje NPC dialog
    */
   async generateNPCDialog(
+    userId: string,
     npcName: string,
     npcPersonality: string,
     character: Character,
@@ -158,7 +188,7 @@ Dialog by měl být v češtině, odpovídat osobnosti postavy a reagovat na akt
 Dialog NPC:`;
 
     return await withRetry(async () => {
-      const model = getModel()
+      const model = await this.getUserModelInstance(userId)
       const result = await model.generateContent(prompt)
       const response = await result.response
       return response.text()
@@ -169,6 +199,7 @@ Dialog NPC:`;
    * Generuje backstory (příběh postavy) na základě jména, rasy a povolání
    */
   async generateCharacterBackstory(
+    userId: string,
     characterName: string,
     race: string,
     characterClass: string
@@ -191,7 +222,7 @@ Dialog NPC:`;
 **Příběh postavy:**`;
 
     return await withRetry(async () => {
-      const model = getModel()
+      const model = await this.getUserModelInstance(userId)
       const result = await model.generateContent(prompt)
       const response = await result.response
       return response.text()
@@ -202,7 +233,10 @@ Dialog NPC:`;
    * Analyzuje narrator text a určí atmosféru scény
    * Vrací strukturovaná data o lokaci, náladě, čase a počasí
    */
-  async analyzeAtmosphere(narratorText: string): Promise<{
+  async analyzeAtmosphere(
+    userId: string,
+    narratorText: string
+  ): Promise<{
     location: string
     mood: string
     timeOfDay: string
@@ -232,7 +266,7 @@ Formát JSON odpovědi:
 JSON odpověď:`;
 
     return await withRetry(async () => {
-      const model = getModel()
+      const model = await this.getUserModelInstance(userId)
       const result = await model.generateContent(prompt)
       const response = await result.response
       const text = response.text()

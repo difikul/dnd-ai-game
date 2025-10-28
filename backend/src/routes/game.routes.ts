@@ -1,13 +1,18 @@
 /**
  * Game Routes - HTTP routing pro herní endpointy
  * Obsahuje rate limiting, validaci a security middleware
+ * All routes require authentication
  */
 
 import { Router } from 'express'
 import rateLimit from 'express-rate-limit'
 import { gameController } from '../controllers/gameController'
+import { authenticateToken } from '../middleware/auth.middleware'
 
 const router = Router()
+
+// Apply authentication middleware to all game routes
+router.use(authenticateToken)
 
 // ============================================================================
 // Rate Limiting Configuration

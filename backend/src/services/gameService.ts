@@ -42,25 +42,30 @@ export interface GameState {
 /**
  * Spustí novou herní session pro danou postavu
  *
+ * @param userId - UUID uživatele (pro validaci ownership)
  * @param characterId - UUID postavy
  * @param startingLocation - Počáteční lokace (default: "Vesnice Bree")
  * @returns Novou session a úvodní narrator response
  */
 export async function startNewGame(
+  userId: string,
   characterId: string,
   startingLocation: string = 'Vesnice Bree'
 ): Promise<StartGameResult> {
   try {
-    // 1. Načti postavu z DB
-    const character = await prisma.character.findUnique({
-      where: { id: characterId },
+    // 1. Načti postavu z DB + validace ownership
+    const character = await prisma.character.findFirst({
+      where: {
+        id: characterId,
+        userId // Kontrola že postava patří uživateli
+      },
       include: {
         inventory: true
       }
     })
 
     if (!character) {
-      throw new Error('Postava nenalezena')
+      throw new Error('Postava nenalezena nebo nemáte oprávnění')
     }
 
     // 2. Vytvoř unikátní session token (prefix gs_ = game session)
@@ -70,6 +75,7 @@ export async function startNewGame(
     const session = await prisma.gameSession.create({
       data: {
         sessionToken,
+        userId, // Přiřaď k uživateli
         characterId: character.id,
         currentLocation: startingLocation,
         questLog: [],
@@ -79,8 +85,9 @@ export async function startNewGame(
       }
     })
 
-    // 4. Zavolej Gemini pro initial narrative
+    // 4. Zavolej Gemini pro initial narrative (s user API key)
     const initialNarrative = await geminiService.generateGameStart(
+      userId,
       character,
       startingLocation
     )
@@ -113,20 +120,25 @@ export async function startNewGame(
 /**
  * Zpracuje akci hráče a vygeneruje narrator response
  *
+ * @param userId - UUID uživatele (pro validaci ownership a Gemini API)
  * @param sessionId - UUID herní session
  * @param action - Akce/příkaz hráče
  * @param characterId - UUID postavy (pro validaci)
  * @returns Narrator response a metadata
  */
 export async function processPlayerAction(
+  userId: string,
   sessionId: string,
   action: string,
   characterId: string
 ): Promise<ProcessActionResult> {
   try {
-    // 1. Načti session s character a messages
-    const session = await prisma.gameSession.findUnique({
-      where: { id: sessionId },
+    // 1. Načti session s character a messages + validace ownership
+    const session = await prisma.gameSession.findFirst({
+      where: {
+        id: sessionId,
+        userId // Kontrola ownership
+      },
       include: {
         character: {
           include: {
@@ -143,7 +155,7 @@ export async function processPlayerAction(
     })
 
     if (!session) {
-      throw new Error('Herní session nenalezena')
+      throw new Error('Herní session nenalezena nebo nemáte oprávnění')
     }
 
     // Validace: zkontroluj že postava patří k session
@@ -174,8 +186,9 @@ export async function processPlayerAction(
     //   session
     // )
 
-    // 4. Zavolej Gemini pro narrator response
+    // 4. Zavolej Gemini pro narrator response (s user API key)
     const narratorResponse = await geminiService.generateNarratorResponse(
+      userId,
       action,
       session.character,
       messagesForContext,
@@ -186,11 +199,11 @@ export async function processPlayerAction(
       }
     )
 
-    // 5. Analyzuj atmosféru z narrator response (async, neblokující)
+    // 5. Analyzuj atmosféru z narrator response (async, neblokující, s user API key)
     let atmosphereData: AtmosphereData | undefined
     try {
       console.log(`🎨 Analyzuji atmosféru pro narrator response...`)
-      atmosphereData = await atmosphereService.analyzeNarratorResponse(narratorResponse.content)
+      atmosphereData = await atmosphereService.analyzeNarratorResponse(userId, narratorResponse.content)
       console.log(`✅ Atmosphere data připravena: ${atmosphereData.location} (${atmosphereData.mood})`)
     } catch (atmosphereError: any) {
       console.error(`⚠️  Nepodařilo se analyzovat atmosféru:`, atmosphereError.message)
@@ -238,14 +251,19 @@ export async function processPlayerAction(
 
 /**
  * Načte kompletní game state pro frontend
+ * Validuje ownership
  *
+ * @param userId - UUID uživatele
  * @param sessionId - UUID herní session
  * @returns Kompletní game state včetně session, character a messages
  */
-export async function getGameState(sessionId: string): Promise<GameState> {
+export async function getGameState(userId: string, sessionId: string): Promise<GameState> {
   try {
-    const session = await prisma.gameSession.findUnique({
-      where: { id: sessionId },
+    const session = await prisma.gameSession.findFirst({
+      where: {
+        id: sessionId,
+        userId // Validace ownership
+      },
       include: {
         character: {
           include: {
@@ -262,7 +280,7 @@ export async function getGameState(sessionId: string): Promise<GameState> {
     })
 
     if (!session) {
-      throw new Error('Herní session nenalezena')
+      throw new Error('Herní session nenalezena nebo nemáte oprávnění')
     }
 
     return {
@@ -278,14 +296,19 @@ export async function getGameState(sessionId: string): Promise<GameState> {
 
 /**
  * Načte game state podle session tokenu (pro load game funkcionalitu)
+ * Validuje ownership
  *
+ * @param userId - UUID uživatele
  * @param sessionToken - Unikátní session token (gs_xxx)
  * @returns Kompletní game state
  */
-export async function getGameStateByToken(sessionToken: string): Promise<GameState> {
+export async function getGameStateByToken(userId: string, sessionToken: string): Promise<GameState> {
   try {
-    const session = await prisma.gameSession.findUnique({
-      where: { sessionToken },
+    const session = await prisma.gameSession.findFirst({
+      where: {
+        sessionToken,
+        userId // Validace ownership
+      },
       include: {
         character: {
           include: {
@@ -302,7 +325,7 @@ export async function getGameStateByToken(sessionToken: string): Promise<GameSta
     })
 
     if (!session) {
-      throw new Error('Herní session nenalezena')
+      throw new Error('Herní session nenalezena nebo nemáte oprávnění')
     }
 
     return {
@@ -318,11 +341,22 @@ export async function getGameStateByToken(sessionToken: string): Promise<GameSta
 
 /**
  * Ukončí aktivní herní session
+ * Validuje ownership
  *
+ * @param userId - UUID uživatele
  * @param sessionId - UUID herní session
  */
-export async function endGameSession(sessionId: string): Promise<void> {
+export async function endGameSession(userId: string, sessionId: string): Promise<void> {
   try {
+    // Validace ownership před ukončením
+    const session = await prisma.gameSession.findFirst({
+      where: { id: sessionId, userId }
+    })
+
+    if (!session) {
+      throw new Error('Herní session nenalezena nebo nemáte oprávnění')
+    }
+
     await prisma.gameSession.update({
       where: { id: sessionId },
       data: {
@@ -339,15 +373,27 @@ export async function endGameSession(sessionId: string): Promise<void> {
 
 /**
  * Aktualizuje quest log v session
+ * Validuje ownership
  *
+ * @param userId - UUID uživatele
  * @param sessionId - UUID herní session
  * @param questLog - Nový quest log (array)
  */
 export async function updateQuestLog(
+  userId: string,
   sessionId: string,
   questLog: any[]
 ): Promise<GameSession> {
   try {
+    // Validace ownership
+    const existingSession = await prisma.gameSession.findFirst({
+      where: { id: sessionId, userId }
+    })
+
+    if (!existingSession) {
+      throw new Error('Herní session nenalezena nebo nemáte oprávnění')
+    }
+
     const session = await prisma.gameSession.update({
       where: { id: sessionId },
       data: {
@@ -364,15 +410,27 @@ export async function updateQuestLog(
 
 /**
  * Aktualizuje current location v session
+ * Validuje ownership
  *
+ * @param userId - UUID uživatele
  * @param sessionId - UUID herní session
  * @param location - Nová lokace
  */
 export async function updateLocation(
+  userId: string,
   sessionId: string,
   location: string
 ): Promise<GameSession> {
   try {
+    // Validace ownership
+    const existingSession = await prisma.gameSession.findFirst({
+      where: { id: sessionId, userId }
+    })
+
+    if (!existingSession) {
+      throw new Error('Herní session nenalezena nebo nemáte oprávnění')
+    }
+
     const session = await prisma.gameSession.update({
       where: { id: sessionId },
       data: {
@@ -389,15 +447,27 @@ export async function updateLocation(
 
 /**
  * Aktualizuje world state v session
+ * Validuje ownership
  *
+ * @param userId - UUID uživatele
  * @param sessionId - UUID herní session
  * @param worldState - Nový world state (object)
  */
 export async function updateWorldState(
+  userId: string,
   sessionId: string,
   worldState: any
 ): Promise<GameSession> {
   try {
+    // Validace ownership
+    const existingSession = await prisma.gameSession.findFirst({
+      where: { id: sessionId, userId }
+    })
+
+    if (!existingSession) {
+      throw new Error('Herní session nenalezena nebo nemáte oprávnění')
+    }
+
     const session = await prisma.gameSession.update({
       where: { id: sessionId },
       data: {

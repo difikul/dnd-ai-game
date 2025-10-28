@@ -104,7 +104,10 @@ export function calculateAC(dexterity: number, equippedArmorValue?: number): num
 /**
  * Vytvoří novou postavu s automatickým výpočtem derived stats
  */
-export async function createCharacter(data: CreateCharacterRequest): Promise<Character> {
+export async function createCharacter(
+  userId: string,
+  data: CreateCharacterRequest
+): Promise<Character> {
   const level = data.level || 1
 
   // Vypočítej maximální HP podle třídy a CON
@@ -116,6 +119,7 @@ export async function createCharacter(data: CreateCharacterRequest): Promise<Cha
   try {
     const character = await prisma.character.create({
       data: {
+        userId, // Přiřaď k uživateli
         name: data.name,
         race: data.race,
         class: data.class,
@@ -147,11 +151,18 @@ export async function createCharacter(data: CreateCharacterRequest): Promise<Cha
 
 /**
  * Načte postavu podle ID včetně inventáře
+ * Validuje ownership - uživatel může načíst pouze své postavy
  */
-export async function getCharacter(id: string): Promise<Character | null> {
+export async function getCharacter(
+  userId: string,
+  id: string
+): Promise<Character | null> {
   try {
-    const character = await prisma.character.findUnique({
-      where: { id },
+    const character = await prisma.character.findFirst({
+      where: {
+        id,
+        userId // Kontrola ownership
+      },
       include: {
         inventory: {
           orderBy: {
@@ -169,11 +180,14 @@ export async function getCharacter(id: string): Promise<Character | null> {
 }
 
 /**
- * Načte všechny postavy (pro budoucí list endpoint)
+ * Načte všechny postavy uživatele
  */
-export async function getAllCharacters(): Promise<Character[]> {
+export async function getAllCharacters(userId: string): Promise<Character[]> {
   try {
     const characters = await prisma.character.findMany({
+      where: {
+        userId // Pouze postavy přihlášeného uživatele
+      },
       orderBy: {
         createdAt: 'desc'
       },
@@ -192,19 +206,21 @@ export async function getAllCharacters(): Promise<Character[]> {
 /**
  * Aktualizuje postavu
  * Přepočítá HP a AC pokud se změní relevantní stats
+ * Validuje ownership
  */
 export async function updateCharacter(
+  userId: string,
   id: string,
   data: UpdateCharacterRequest
 ): Promise<Character> {
   try {
-    // Načti aktuální postavu pro přepočítání stats
-    const existingCharacter = await prisma.character.findUnique({
-      where: { id }
+    // Načti aktuální postavu pro přepočítání stats + validace ownership
+    const existingCharacter = await prisma.character.findFirst({
+      where: { id, userId }
     })
 
     if (!existingCharacter) {
-      throw new Error('Postava nenalezena')
+      throw new Error('Postava nenalezena nebo nemáte oprávnění')
     }
 
     // Připrav update data
@@ -242,9 +258,19 @@ export async function updateCharacter(
 
 /**
  * Smaže postavu
+ * Validuje ownership
  */
-export async function deleteCharacter(id: string): Promise<boolean> {
+export async function deleteCharacter(userId: string, id: string): Promise<boolean> {
   try {
+    // Validace ownership před smazáním
+    const character = await prisma.character.findFirst({
+      where: { id, userId }
+    })
+
+    if (!character) {
+      throw new Error('Postava nenalezena nebo nemáte oprávnění')
+    }
+
     await prisma.character.delete({
       where: { id }
     })
@@ -259,18 +285,20 @@ export async function deleteCharacter(id: string): Promise<boolean> {
 /**
  * Přidá experience a případně zvýší level
  * TODO: Implementovat leveling system podle D&D 5e XP tabulky
+ * Validuje ownership
  */
 export async function addExperience(
+  userId: string,
   id: string,
   xpAmount: number
 ): Promise<Character> {
   try {
-    const character = await prisma.character.findUnique({
-      where: { id }
+    const character = await prisma.character.findFirst({
+      where: { id, userId }
     })
 
     if (!character) {
-      throw new Error('Postava nenalezena')
+      throw new Error('Postava nenalezena nebo nemáte oprávnění')
     }
 
     const newXP = character.experience + xpAmount
@@ -297,18 +325,20 @@ export async function addExperience(
 
 /**
  * Upraví HP postavy (healing, damage)
+ * Validuje ownership
  */
 export async function modifyHP(
+  userId: string,
   id: string,
   amount: number
 ): Promise<Character> {
   try {
-    const character = await prisma.character.findUnique({
-      where: { id }
+    const character = await prisma.character.findFirst({
+      where: { id, userId }
     })
 
     if (!character) {
-      throw new Error('Postava nenalezena')
+      throw new Error('Postava nenalezena nebo nemáte oprávnění')
     }
 
     // Vypočítaj nové HP (min 0, max maxHitPoints)

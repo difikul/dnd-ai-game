@@ -1,11 +1,27 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
 
-if (!process.env.GEMINI_API_KEY) {
-  throw new Error('GEMINI_API_KEY environment variable is not set')
+// DEPRECATED: Global API key for backward compatibility / testing only
+// In multi-user mode, each user provides their own API key
+const FALLBACK_API_KEY = process.env.GEMINI_API_KEY
+
+if (!FALLBACK_API_KEY) {
+  console.warn('⚠️  GEMINI_API_KEY not set. Users must provide their own API keys.')
 }
 
-// Initialize Gemini AI client
-export const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
+// Initialize Gemini AI client (fallback for testing)
+export const genAI = FALLBACK_API_KEY
+  ? new GoogleGenerativeAI(FALLBACK_API_KEY)
+  : null
+
+/**
+ * Create GoogleGenerativeAI instance with user's API key
+ */
+export function getUserGenAI(apiKey: string): GoogleGenerativeAI {
+  if (!apiKey) {
+    throw new Error('Gemini API klíč je vyžadován. Přidejte jej ve svém profilu.')
+  }
+  return new GoogleGenerativeAI(apiKey)
+}
 
 // Model configuration
 // Using Gemini 2.0 Flash Experimental - Available in January 2025
@@ -41,8 +57,23 @@ export const safetySettings = [
 ]
 
 // Get model instance
+// DEPRECATED: Use getUserModel(genAI) instead for per-user API keys
 export function getModel() {
+  if (!genAI) {
+    throw new Error('Global Gemini API not available. Use per-user API keys.')
+  }
   return genAI.getGenerativeModel({
+    model: MODEL_NAME,
+    generationConfig,
+    safetySettings: safetySettings as any,
+  })
+}
+
+/**
+ * Get model instance for user's GoogleGenerativeAI client
+ */
+export function getUserModel(userGenAI: GoogleGenerativeAI) {
+  return userGenAI.getGenerativeModel({
     model: MODEL_NAME,
     generationConfig,
     safetySettings: safetySettings as any,

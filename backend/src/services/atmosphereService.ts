@@ -19,15 +19,16 @@ import {
 class AtmosphereService {
   /**
    * Analyzuje narrator response a vrátí kompletní atmosphere data včetně background URL
+   * @param userId - UUID uživatele (pro Gemini API key)
    * @param narratorText - Text od AI narratora
    * @returns Kompletní atmosphere data s background URL
    */
-  async analyzeNarratorResponse(narratorText: string): Promise<AtmosphereData> {
+  async analyzeNarratorResponse(userId: string, narratorText: string): Promise<AtmosphereData> {
     try {
       console.log(`🎨 Analyzuji atmosféru z narrator textu (${narratorText.length} znaků)...`)
 
-      // 1. Zavolej Gemini AI pro analýzu
-      const analysis = await geminiService.analyzeAtmosphere(narratorText)
+      // 1. Zavolej Gemini AI pro analýzu (s user API key)
+      const analysis = await geminiService.analyzeAtmosphere(userId, narratorText)
 
       console.log(`✅ Atmosféra analyzována:`, analysis)
 

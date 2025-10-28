@@ -1,12 +1,17 @@
 /**
  * Save Routes - REST API endpointy pro save/load funkcionalitu
  * Definuje HTTP routes a připojuje controller handlery
+ * All routes require authentication
  */
 
 import { Router } from 'express'
 import { saveController } from '../controllers/saveController'
+import { authenticateToken } from '../middleware/auth.middleware'
 
 const router = Router()
+
+// Apply authentication middleware to all save routes
+router.use(authenticateToken)
 
 // ============================================================================
 // Save/Load Routes

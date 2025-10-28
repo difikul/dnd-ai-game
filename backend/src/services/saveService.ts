@@ -49,15 +49,19 @@ function generateToken(): string {
  * Pokud session již existuje, pouze aktualizuje lastPlayedAt
  * Token je generován při vytvoření session (v gameService.startNewGame)
  *
+ * @param userId - UUID uživatele (pro validaci ownership)
  * @param sessionId - UUID herní session
  * @returns Session token pro sdílení
- * @throws Error pokud session neexistuje
+ * @throws Error pokud session neexistuje nebo nemáte oprávnění
  */
-export async function saveGame(sessionId: string): Promise<string> {
+export async function saveGame(userId: string, sessionId: string): Promise<string> {
   try {
-    // Načti session a validuj existenci
-    const session = await prisma.gameSession.findUnique({
-      where: { id: sessionId },
+    // Načti session a validuj ownership
+    const session = await prisma.gameSession.findFirst({
+      where: {
+        id: sessionId,
+        userId // Validace ownership
+      },
       select: {
         id: true,
         sessionToken: true,
@@ -66,7 +70,7 @@ export async function saveGame(sessionId: string): Promise<string> {
     })
 
     if (!session) {
-      throw new Error('Herní session nenalezena')
+      throw new Error('Herní session nenalezena nebo nemáte oprávnění')
     }
 
     // Update lastPlayedAt pro indikaci "uložení"
@@ -89,16 +93,21 @@ export async function saveGame(sessionId: string): Promise<string> {
 /**
  * Načte kompletní game session podle tokenu
  * Vrací session s character (včetně inventory) a messages
+ * Validuje ownership
  *
+ * @param userId - UUID uživatele (pro validaci ownership)
  * @param token - Session token (formát: gs_xxx)
  * @returns Kompletní game session s relacemi
- * @throws Error pokud session s tokenem neexistuje
+ * @throws Error pokud session s tokenem neexistuje nebo nemáte oprávnění
  */
-export async function loadGameByToken(token: string): Promise<GameSessionWithRelations> {
+export async function loadGameByToken(userId: string, token: string): Promise<GameSessionWithRelations> {
   try {
-    // Načti session podle tokenu s všemi relacemi
-    const session = await prisma.gameSession.findUnique({
-      where: { sessionToken: token },
+    // Načti session podle tokenu s všemi relacemi + validace ownership
+    const session = await prisma.gameSession.findFirst({
+      where: {
+        sessionToken: token,
+        userId // Validace ownership
+      },
       include: {
         character: {
           include: {
@@ -115,7 +124,7 @@ export async function loadGameByToken(token: string): Promise<GameSessionWithRel
     })
 
     if (!session) {
-      throw new Error('Session s tímto tokenem nebyla nalezena')
+      throw new Error('Session s tímto tokenem nebyla nalezena nebo nemáte oprávnění')
     }
 
     // Update lastPlayedAt při načtení
@@ -138,13 +147,16 @@ export async function loadGameByToken(token: string): Promise<GameSessionWithRel
 /**
  * Vrátí seznam všech aktivních sessions pro SavedGamesView
  * Seřazeno podle lastPlayedAt (nejnovější první)
+ * Vrací pouze sessions přihlášeného uživatele
  *
+ * @param userId - UUID uživatele
  * @returns Array uložených her s detaily
  */
-export async function listActiveSessions(): Promise<SavedGameListItem[]> {
+export async function listActiveSessions(userId: string): Promise<SavedGameListItem[]> {
   try {
     const sessions = await prisma.gameSession.findMany({
       where: {
+        userId, // Pouze sessions přihlášeného uživatele
         isActive: true
       },
       include: {
@@ -190,15 +202,20 @@ export async function listActiveSessions(): Promise<SavedGameListItem[]> {
 /**
  * Smaže uloženou hru (session) včetně všech souvisejících dat
  * Díky CASCADE v DB schématu se automaticky smažou i messages
+ * Validuje ownership
  *
+ * @param userId - UUID uživatele (pro validaci ownership)
  * @param sessionId - UUID herní session
- * @throws Error pokud session neexistuje
+ * @throws Error pokud session neexistuje nebo nemáte oprávnění
  */
-export async function deleteSession(sessionId: string): Promise<void> {
+export async function deleteSession(userId: string, sessionId: string): Promise<void> {
   try {
-    // Validuj existenci
-    const session = await prisma.gameSession.findUnique({
-      where: { id: sessionId },
+    // Validuj ownership
+    const session = await prisma.gameSession.findFirst({
+      where: {
+        id: sessionId,
+        userId // Validace ownership
+      },
       select: {
         id: true,
         sessionToken: true
@@ -206,7 +223,7 @@ export async function deleteSession(sessionId: string): Promise<void> {
     })
 
     if (!session) {
-      throw new Error('Herní session nenalezena')
+      throw new Error('Herní session nenalezena nebo nemáte oprávnění')
     }
 
     // Smaž session (CASCADE smaže i messages)
@@ -224,20 +241,25 @@ export async function deleteSession(sessionId: string): Promise<void> {
 /**
  * Regeneruje nový token pro existující session
  * Užitečné pokud chce hráč získat nový shareable link
+ * Validuje ownership
  *
+ * @param userId - UUID uživatele (pro validaci ownership)
  * @param sessionId - UUID herní session
  * @returns Nový session token
- * @throws Error pokud session neexistuje
+ * @throws Error pokud session neexistuje nebo nemáte oprávnění
  */
-export async function regenerateToken(sessionId: string): Promise<string> {
+export async function regenerateToken(userId: string, sessionId: string): Promise<string> {
   try {
-    const session = await prisma.gameSession.findUnique({
-      where: { id: sessionId },
+    const session = await prisma.gameSession.findFirst({
+      where: {
+        id: sessionId,
+        userId // Validace ownership
+      },
       select: { id: true }
     })
 
     if (!session) {
-      throw new Error('Herní session nenalezena')
+      throw new Error('Herní session nenalezena nebo nemáte oprávnění')
     }
 
     // Generuj nový unikátní token

@@ -1,14 +1,19 @@
 /**
  * Character Routes - REST API endpoints pro správu postav
+ * All routes require authentication
  */
 
 import { Router } from 'express'
 import rateLimit from 'express-rate-limit'
 import * as characterController from '../controllers/characterController'
+import { authenticateToken } from '../middleware/auth.middleware'
 import { validateRequest, validateUUID } from '../middleware/validation.middleware'
 import { createCharacterSchema, updateCharacterSchema, generateBackstorySchema } from '../types/api.types'
 
 const router = Router()
+
+// Apply authentication middleware to all character routes
+router.use(authenticateToken)
 
 // Rate limiter pro AI generování (drahé volání)
 const aiGenerationLimiter = rateLimit({

@@ -3,6 +3,7 @@ import cors from 'cors'
 import helmet from 'helmet'
 import morgan from 'morgan'
 import compression from 'compression'
+import authRoutes from './routes/auth.routes'
 import testRoutes from './routes/test.routes'
 import characterRoutes from './routes/character.routes'
 import gameRoutes from './routes/game.routes'
@@ -41,6 +42,7 @@ app.get('/health', (req, res) => {
 })
 
 // API routes
+app.use('/api/auth', authRoutes)
 app.use('/api/test', testRoutes)
 app.use('/api/characters', characterRoutes)
 app.use('/api/game', gameRoutes)
@@ -54,6 +56,12 @@ app.get('/api', (req, res) => {
     status: 'ready',
     endpoints: {
       health: '/health',
+      auth: {
+        register: 'POST /api/auth/register',
+        login: 'POST /api/auth/login',
+        me: 'GET /api/auth/me (requires auth)',
+        updateGeminiKey: 'PUT /api/auth/gemini-key (requires auth)'
+      },
       test: {
         narrator: 'POST /api/test/narrator',
         connections: 'GET /api/test/connections',

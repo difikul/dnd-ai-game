@@ -7,6 +7,28 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id              String        @id @default(uuid())
+  email           String        @unique
+  username        String        @unique
+  passwordHash    String
+  role            String        @default("user") // "user" or "admin"
+  geminiApiKey    String?       @db.Text  // Encrypted Gemini API token
+
+  // Relations
+  characters      Character[]
+  gameSessions    GameSession[]
+
+  // Meta
+  isActive        Boolean       @default(true)
+  lastLoginAt     DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([email])
+  @@index([username])
+}
+
 model Character {
   id        String   @id @default(uuid())
   name      String
@@ -32,6 +54,10 @@ model Character {
   avatarUrl       String?
   background      String?  @db.Text
 
+  // User ownership
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   // Relations
   gameSessions GameSession[]
   inventory    Item[]
@@ -40,11 +66,16 @@ model Character {
   updatedAt DateTime @updatedAt
 
   @@index([name])
+  @@index([userId])
 }
 
 model GameSession {
   id              String   @id @default(uuid())
   sessionToken    String   @unique // Pro sdílení
+
+  // User ownership
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   characterId     String
   character       Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
@@ -65,6 +96,7 @@ model GameSession {
 
   @@index([sessionToken])
   @@index([characterId])
+  @@index([userId])
   @@index([lastPlayedAt])
 }
 

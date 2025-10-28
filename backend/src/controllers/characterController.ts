@@ -15,7 +15,7 @@ export async function createCharacter(req: Request, res: Response): Promise<void
   try {
     const data: CreateCharacterRequest = req.body
 
-    const character = await characterService.createCharacter(data)
+    const character = await characterService.createCharacter(req.user!.userId, data)
 
     res.status(201).json({
       success: true,
@@ -39,7 +39,7 @@ export async function createCharacter(req: Request, res: Response): Promise<void
  */
 export async function getAllCharacters(req: Request, res: Response): Promise<void> {
   try {
-    const characters = await characterService.getAllCharacters()
+    const characters = await characterService.getAllCharacters(req.user!.userId)
 
     res.status(200).json({
       success: true,
@@ -65,7 +65,7 @@ export async function getCharacterById(req: Request, res: Response): Promise<voi
   try {
     const { id } = req.params
 
-    const character = await characterService.getCharacter(id)
+    const character = await characterService.getCharacter(req.user!.userId, id)
 
     if (!character) {
       res.status(404).json({
@@ -101,7 +101,7 @@ export async function updateCharacter(req: Request, res: Response): Promise<void
     const data: UpdateCharacterRequest = req.body
 
     // Zkontroluj, jestli postava existuje
-    const existingCharacter = await characterService.getCharacter(id)
+    const existingCharacter = await characterService.getCharacter(req.user!.userId, id)
     if (!existingCharacter) {
       res.status(404).json({
         success: false,
@@ -111,7 +111,7 @@ export async function updateCharacter(req: Request, res: Response): Promise<void
       return
     }
 
-    const character = await characterService.updateCharacter(id, data)
+    const character = await characterService.updateCharacter(req.user!.userId, id, data)
 
     res.status(200).json({
       success: true,
@@ -138,7 +138,7 @@ export async function deleteCharacter(req: Request, res: Response): Promise<void
     const { id } = req.params
 
     // Zkontroluj, jestli postava existuje
-    const existingCharacter = await characterService.getCharacter(id)
+    const existingCharacter = await characterService.getCharacter(req.user!.userId, id)
     if (!existingCharacter) {
       res.status(404).json({
         success: false,
@@ -148,7 +148,7 @@ export async function deleteCharacter(req: Request, res: Response): Promise<void
       return
     }
 
-    await characterService.deleteCharacter(id)
+    await characterService.deleteCharacter(req.user!.userId, id)
 
     res.status(200).json({
       success: true,
@@ -184,7 +184,7 @@ export async function modifyHP(req: Request, res: Response): Promise<void> {
       return
     }
 
-    const character = await characterService.modifyHP(id, amount)
+    const character = await characterService.modifyHP(req.user!.userId, id, amount)
 
     res.status(200).json({
       success: true,
@@ -232,7 +232,7 @@ export async function addExperience(req: Request, res: Response): Promise<void> 
       return
     }
 
-    const character = await characterService.addExperience(id, amount)
+    const character = await characterService.addExperience(req.user!.userId, id, amount)
 
     res.status(200).json({
       success: true,
@@ -272,6 +272,7 @@ export async function generateBackstory(req: Request, res: Response): Promise<vo
 
     // Zavolej Gemini AI
     const backstory = await geminiService.generateCharacterBackstory(
+      req.user!.userId,
       name,
       race,
       characterClass

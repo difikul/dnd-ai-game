@@ -29,7 +29,7 @@ const tokenParamSchema = z.object({
  */
 export async function listSaves(req: Request, res: Response): Promise<void> {
   try {
-    const savedGames = await saveService.listActiveSessions()
+    const savedGames = await saveService.listActiveSessions(req.user!.userId)
 
     res.status(200).json({
       success: true,
@@ -70,7 +70,7 @@ export async function saveGame(req: Request, res: Response): Promise<void> {
     const { sessionId } = paramsValidation.data
 
     // Zavolej service
-    const sessionToken = await saveService.saveGame(sessionId)
+    const sessionToken = await saveService.saveGame(req.user!.userId, sessionId)
 
     res.status(200).json({
       success: true,
@@ -125,7 +125,7 @@ export async function loadByToken(req: Request, res: Response): Promise<void> {
     const { token } = paramsValidation.data
 
     // Zavolej service
-    const gameSession = await saveService.loadGameByToken(token)
+    const gameSession = await saveService.loadGameByToken(req.user!.userId, token)
 
     // Připrav response ve stejném formátu jako gameController.getGameState
     res.status(200).json({
@@ -191,7 +191,7 @@ export async function deleteGame(req: Request, res: Response): Promise<void> {
     const { sessionId } = paramsValidation.data
 
     // Zavolej service
-    await saveService.deleteSession(sessionId)
+    await saveService.deleteSession(req.user!.userId, sessionId)
 
     res.status(200).json({
       success: true,
@@ -242,7 +242,7 @@ export async function regenerateToken(req: Request, res: Response): Promise<void
     const { sessionId } = paramsValidation.data
 
     // Zavolej service
-    const newToken = await saveService.regenerateToken(sessionId)
+    const newToken = await saveService.regenerateToken(req.user!.userId, sessionId)
 
     res.status(200).json({
       success: true,

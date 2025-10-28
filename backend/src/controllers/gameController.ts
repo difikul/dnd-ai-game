@@ -34,7 +34,7 @@ export async function startGame(req: Request, res: Response): Promise<void> {
     const { characterId, startingLocation } = validationResult.data
 
     // Zavolej service
-    const result = await gameService.startNewGame(characterId, startingLocation)
+    const result = await gameService.startNewGame(req.user!.userId, characterId, startingLocation)
 
     // Připrav response
     const response: StartGameResponse = {
@@ -106,7 +106,7 @@ export async function handleAction(req: Request, res: Response): Promise<void> {
     const { action, characterId } = bodyValidation.data
 
     // Zavolej service
-    const result = await gameService.processPlayerAction(sessionId, action, characterId)
+    const result = await gameService.processPlayerAction(req.user!.userId, sessionId, action, characterId)
 
     // Připrav response
     const response: PlayerActionResponse = {
@@ -174,7 +174,7 @@ export async function getGameState(req: Request, res: Response): Promise<void> {
     const sessionId = paramsValidation.data.id
 
     // Zavolej service
-    const gameState = await gameService.getGameState(sessionId)
+    const gameState = await gameService.getGameState(req.user!.userId, sessionId)
 
     // Připrav response
     const response: GameStateResponse = {
@@ -234,7 +234,7 @@ export async function getGameStateByToken(req: Request, res: Response): Promise<
     }
 
     // Zavolej service
-    const gameState = await gameService.getGameStateByToken(token)
+    const gameState = await gameService.getGameStateByToken(req.user!.userId, token)
 
     // Připrav response (stejný formát jako getGameState)
     const response: GameStateResponse = {
@@ -294,7 +294,7 @@ export async function endGame(req: Request, res: Response): Promise<void> {
 
     const sessionId = paramsValidation.data.id
 
-    await gameService.endGameSession(sessionId)
+    await gameService.endGameSession(req.user!.userId, sessionId)
 
     res.status(200).json({
       success: true,

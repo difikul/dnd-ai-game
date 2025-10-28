@@ -19,6 +19,7 @@ model User {
   characters      Character[]
   gameSessions    GameSession[]
   geminiUsage     GeminiUsage[]
+  adminActions    AdminAuditLog[] @relation("AdminActions")
 
   // Meta
   isActive        Boolean       @default(true)
@@ -235,5 +236,26 @@ model GeminiUsage {
   errorCode   String?  // "RESOURCE_EXHAUSTED", "INVALID_ARGUMENT", null
 
   @@index([userId, timestamp])
+  @@index([timestamp])
+}
+
+// ═══════════════════════════════════════════════
+// ADMIN AUDIT LOG
+// ═══════════════════════════════════════════════
+
+model AdminAuditLog {
+  id          String   @id @default(uuid())
+  adminId     String
+  admin       User     @relation("AdminActions", fields: [adminId], references: [id], onDelete: Cascade)
+
+  action      String   // "USER_BAN", "USER_DELETE", "USER_UNBAN", "CHARACTER_DELETE", "SESSION_TERMINATE"
+  targetType  String   // "user", "character", "session"
+  targetId    String
+  metadata    Json?    // Důvod, poznámky, další kontext
+
+  timestamp   DateTime @default(now())
+
+  @@index([adminId, timestamp])
+  @@index([targetType, targetId])
   @@index([timestamp])
 }

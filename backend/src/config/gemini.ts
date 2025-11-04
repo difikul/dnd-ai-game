@@ -24,9 +24,9 @@ export function getUserGenAI(apiKey: string): GoogleGenerativeAI {
 }
 
 // Model configuration
-// Using Gemini 2.0 Flash Experimental - Available in January 2025
-// Fallback if not working: 'gemini-1.5-flash-latest'
-export const MODEL_NAME = 'gemini-2.0-flash-exp'
+// Using Gemini 2.0 Flash (stable, fast, good quality)
+// Note: Must include 'models/' prefix for v1beta API
+export const MODEL_NAME = 'models/gemini-2.0-flash'
 
 // Generation config
 export const generationConfig = {
@@ -108,8 +108,22 @@ export async function withRetry<T>(
   for (let i = 0; i < maxRetries; i++) {
     try {
       return await fn()
-    } catch (error) {
+    } catch (error: any) {
       lastError = error as Error
+
+      // Don't retry on rate limiting (429) or quota errors
+      // These won't resolve quickly and we should fail fast
+      const isRateLimitError =
+        error.status === 429 ||
+        error.message?.includes('quota') ||
+        error.message?.includes('RESOURCE_EXHAUSTED') ||
+        error.message?.includes('Too Many Requests')
+
+      if (isRateLimitError) {
+        console.warn(`❌ Rate limit error - not retrying:`, error.message || error)
+        throw error
+      }
+
       console.warn(`Retry ${i + 1}/${maxRetries} failed:`, error)
 
       if (i < maxRetries - 1) {

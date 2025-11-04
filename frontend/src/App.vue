@@ -1,5 +1,8 @@
 <template>
   <div id="app" class="min-h-screen bg-dark-900 text-white">
+    <!-- API Quota Top Bar - zobrazí se pouze když je uživatel přihlášený -->
+    <ApiQuotaTopBar v-if="authStore.isAuthenticated" />
+
     <RouterView v-slot="{ Component }">
       <Transition name="fade" mode="out-in">
         <component :is="Component" />
@@ -10,6 +13,10 @@
 
 <script setup lang="ts">
 import { RouterView } from 'vue-router'
+import { useAuthStore } from '@/stores/authStore'
+import ApiQuotaTopBar from '@/components/game/ApiQuotaTopBar.vue'
+
+const authStore = useAuthStore()
 </script>
 
 <style>

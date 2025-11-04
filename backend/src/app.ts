@@ -12,6 +12,7 @@ import saveRoutes from './routes/save.routes'
 import restRoutes from './routes/rest.routes'
 import quotaRoutes from './routes/quota.routes'
 import adminRoutes from './routes/admin.routes'
+import bugReportRoutes from './routes/bugReport.routes'
 
 const app = express()
 
@@ -54,6 +55,7 @@ app.use('/api/saves', saveRoutes)
 app.use('/api/rest', restRoutes)
 app.use('/api', quotaRoutes)
 app.use('/api/admin', adminRoutes) // Admin routes (requires auth + admin role)
+app.use('/api/bug-reports', bugReportRoutes) // Bug report routes
 
 app.get('/api', (req, res) => {
   res.json({

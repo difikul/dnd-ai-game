@@ -18,6 +18,10 @@ export const useChatStore = defineStore('chat', () => {
   const isLoading = ref(false)
   const isTyping = ref(false)
   const error = ref<string | null>(null)
+  const lastRequestTime = ref<number>(0)
+
+  // Rate limiting: minimum 5 seconds between actions (to respect Gemini API limits)
+  const MIN_REQUEST_INTERVAL_MS = 5000
 
   // Getters
   const messageCount = computed(() => messages.value.length)
@@ -58,6 +62,15 @@ export const useChatStore = defineStore('chat', () => {
     const characterStore = useCharacterStore()
     const atmosphereStore = useAtmosphereStore()
 
+    // Rate limiting check
+    const now = Date.now()
+    const timeSinceLastRequest = now - lastRequestTime.value
+    if (timeSinceLastRequest < MIN_REQUEST_INTERVAL_MS && lastRequestTime.value > 0) {
+      const waitSeconds = Math.ceil((MIN_REQUEST_INTERVAL_MS - timeSinceLastRequest) / 1000)
+      error.value = `Počkej prosím ${waitSeconds}s před další akcí (rate limit)`
+      throw new Error(`Rate limit: Musíš počkat ${waitSeconds} sekund`)
+    }
+
     // Validate active session and character
     if (!gameStore.currentSession) {
       error.value = 'Žádná aktivní herní session'
@@ -80,6 +93,9 @@ export const useChatStore = defineStore('chat', () => {
 
     // Add player message immediately (optimistic update)
     messages.value.push(playerMsg)
+
+    // Update last request timestamp
+    lastRequestTime.value = Date.now()
 
     isLoading.value = true
     isTyping.value = true

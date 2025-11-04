@@ -52,6 +52,52 @@ const router = createRouter({
       name: 'profile',
       component: () => import('@/views/ProfileView.vue'),
       meta: { requiresAuth: true }
+    },
+
+    // ============================================================================
+    // Admin routes (vyžadují autentizaci + admin roli)
+    // ============================================================================
+    {
+      path: '/admin',
+      component: () => import('@/components/admin/AdminLayout.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true },
+      children: [
+        {
+          path: '',
+          name: 'admin-dashboard',
+          component: () => import('@/views/admin/AdminDashboardView.vue')
+        },
+        {
+          path: 'users',
+          name: 'admin-users',
+          component: () => import('@/views/admin/AdminUsersView.vue')
+        },
+        {
+          path: 'characters',
+          name: 'admin-characters',
+          component: () => import('@/views/admin/AdminCharactersView.vue')
+        },
+        {
+          path: 'sessions',
+          name: 'admin-sessions',
+          component: () => import('@/views/admin/AdminSessionsView.vue')
+        },
+        {
+          path: 'analytics',
+          name: 'admin-analytics',
+          component: () => import('@/views/admin/AdminAnalyticsView.vue')
+        },
+        {
+          path: 'audit',
+          name: 'admin-audit',
+          component: () => import('@/views/admin/AdminAuditView.vue')
+        },
+        {
+          path: 'bug-reports',
+          name: 'admin-bug-reports',
+          component: () => import('@/views/admin/AdminBugReportsView.vue')
+        }
+      ]
     }
   ]
 })
@@ -91,6 +137,22 @@ router.beforeEach(async (to, from, next) => {
     console.log('✅ User already authenticated, redirecting to home')
     next({ name: 'home' })
     return
+  }
+
+  // Kontrola requiresAdmin meta fieldu (admin routes)
+  if (to.meta.requiresAdmin) {
+    if (!authStore.isAuthenticated) {
+      // User není přihlášen
+      console.log('🔒 Admin route requires authentication, redirecting to login')
+      next({ name: 'login', query: { redirect: to.fullPath } })
+      return
+    }
+    if (authStore.user?.role !== 'admin') {
+      // User není admin
+      console.log('⛔ Access denied: User is not an admin')
+      next({ name: 'home' })
+      return
+    }
   }
 
   // Vše OK, pokračuj na cílovou route

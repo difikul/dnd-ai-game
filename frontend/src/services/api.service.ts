@@ -38,10 +38,46 @@ api.interceptors.request.use(
 // Response interceptor - handles errors including 401 logout
 api.interceptors.response.use(
   (response) => {
+    // Auto-refresh quota after Gemini API calls
+    const url = response.config.url || ''
+    const isGeminiApiCall =
+      url.includes('/generate-backstory') ||
+      url.includes('/game/start') ||
+      url.includes('/game/session/') && url.includes('/action')
+
+    if (isGeminiApiCall) {
+      // Lazy import to avoid circular dependency
+      import('@/stores/quotaStore').then(({ useQuotaStore }) => {
+        const quotaStore = useQuotaStore()
+        // Refresh quota stats after Gemini API call
+        setTimeout(() => {
+          quotaStore.fetchQuota()
+        }, 500) // Small delay to ensure backend has processed the request
+      })
+    }
+
     return response
   },
   (error: AxiosError) => {
     const authStore = useAuthStore()
+
+    // Auto-refresh quota after failed Gemini API calls too
+    const url = error.config?.url || ''
+    const isGeminiApiCall =
+      url.includes('/generate-backstory') ||
+      url.includes('/game/start') ||
+      url.includes('/game/session/') && url.includes('/action')
+
+    if (isGeminiApiCall) {
+      // Lazy import to avoid circular dependency
+      import('@/stores/quotaStore').then(({ useQuotaStore }) => {
+        const quotaStore = useQuotaStore()
+        // Refresh quota stats after failed Gemini API call
+        setTimeout(() => {
+          quotaStore.fetchQuota()
+        }, 500)
+      })
+    }
 
     // Handle common errors
     if (error.response) {

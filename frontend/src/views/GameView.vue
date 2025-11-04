@@ -3,9 +3,6 @@
     <!-- Atmospheric Background -->
     <AtmosphericBackground />
 
-    <!-- API Quota Status Bar -->
-    <ApiQuotaStatusBar />
-
     <!-- Loading State -->
     <div
       v-if="loading"
@@ -212,7 +209,6 @@ import GameChat from '@/components/game/GameChat.vue'
 import CharacterSheet from '@/components/character/CharacterSheet.vue'
 import DiceRoller from '@/components/game/DiceRoller.vue'
 import AtmosphericBackground from '@/components/game/AtmosphericBackground.vue'
-import ApiQuotaStatusBar from '@/components/game/ApiQuotaStatusBar.vue'
 
 const route = useRoute()
 const router = useRouter()

@@ -20,6 +20,9 @@ model User {
   gameSessions    GameSession[]
   geminiUsage     GeminiUsage[]
   adminActions    AdminAuditLog[] @relation("AdminActions")
+  bugReports      BugReport[]
+  assignedBugReports BugReport[] @relation("BugReportAssignee")
+  resolvedBugReports BugReport[] @relation("BugReportResolver")
 
   // Meta
   isActive        Boolean       @default(true)
@@ -258,4 +261,51 @@ model AdminAuditLog {
   @@index([adminId, timestamp])
   @@index([targetType, targetId])
   @@index([timestamp])
+}
+
+// ═══════════════════════════════════════════════
+// BUG REPORTING SYSTEM
+// ═══════════════════════════════════════════════
+
+model BugReport {
+  id          String   @id @default(uuid())
+
+  // Reporter info
+  userId      String?  // Null pokud není přihlášený (optional)
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  // Bug details
+  title       String
+  description String   @db.Text
+  category    String   // "bug", "enhancement", "other"
+  severity    String   // "low", "medium", "high", "critical"
+
+  // Context
+  url         String?  // URL kde se bug vyskytl
+  userAgent   String?  // Browser info
+  screenshots Json?    @default("[]")  // Array of screenshot paths
+
+  // Status tracking
+  status      String   @default("open") // "open", "in_progress", "resolved", "closed", "wont_fix"
+  priority    Int      @default(0)      // 0-4 (admin může upravit)
+
+  // Admin handling
+  assignedTo  String?  // Admin user ID
+  assignedAdmin User?  @relation("BugReportAssignee", fields: [assignedTo], references: [id], onDelete: SetNull)
+
+  adminNotes  String?  @db.Text
+  resolvedAt  DateTime?
+  resolvedBy  String?  // Admin user ID
+  resolver    User?    @relation("BugReportResolver", fields: [resolvedBy], references: [id], onDelete: SetNull)
+
+  // Metadata
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([category])
+  @@index([severity])
+  @@index([createdAt])
+  @@index([assignedTo])
 }

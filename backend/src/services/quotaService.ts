@@ -35,13 +35,15 @@ class QuotaService {
     const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000)
 
     // Query requests in last minute
+    // IMPORTANT: Count ALL requests (successful + failed) because Gemini API
+    // counts all attempts towards rate limit, not just successful ones
     const requestsLastMinute = await prisma.geminiUsage.count({
       where: {
         userId,
         timestamp: {
           gte: oneMinuteAgo
-        },
-        success: true // Only count successful requests towards quota
+        }
+        // No success filter - count ALL requests
       }
     })
 
@@ -51,8 +53,8 @@ class QuotaService {
         userId,
         timestamp: {
           gte: oneDayAgo
-        },
-        success: true
+        }
+        // No success filter - count ALL requests
       }
     })
 

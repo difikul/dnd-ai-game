@@ -1,0 +1,55 @@
+# Node modules
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Development files
+*.md
+!README.md
+.git/
+.gitignore
+.vscode/
+.idea/
+
+# Build artifacts (will be generated during build)
+dist/
+*.log
+
+# Test files
+tests/
+e2e/
+*.test.ts
+*.spec.ts
+coverage/
+.nyc_output/
+playwright-report/
+test-results/
+
+# Docker files
+Dockerfile
+Dockerfile.*
+docker-compose*.yml
+.dockerignore
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.swp
+*.swo
+*~
+
+# IDE
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace

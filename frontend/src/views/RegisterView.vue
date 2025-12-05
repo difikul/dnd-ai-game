@@ -21,6 +21,7 @@
               type="email"
               required
               autocomplete="email"
+              data-testid="register-email-input"
               class="w-full px-4 py-3 bg-dark-700 border border-dark-600 rounded-lg text-white
                      placeholder-gray-500 focus:outline-none focus:border-gold-500 focus:ring-1
                      focus:ring-gold-500 transition"
@@ -42,6 +43,7 @@
               autocomplete="username"
               minlength="3"
               maxlength="20"
+              data-testid="register-username-input"
               class="w-full px-4 py-3 bg-dark-700 border border-dark-600 rounded-lg text-white
                      placeholder-gray-500 focus:outline-none focus:border-gold-500 focus:ring-1
                      focus:ring-gold-500 transition"
@@ -63,6 +65,7 @@
               required
               autocomplete="new-password"
               minlength="6"
+              data-testid="register-password-input"
               class="w-full px-4 py-3 bg-dark-700 border border-dark-600 rounded-lg text-white
                      placeholder-gray-500 focus:outline-none focus:border-gold-500 focus:ring-1
                      focus:ring-gold-500 transition"
@@ -82,6 +85,7 @@
               type="password"
               required
               autocomplete="new-password"
+              data-testid="register-confirm-password-input"
               class="w-full px-4 py-3 bg-dark-700 border border-dark-600 rounded-lg text-white
                      placeholder-gray-500 focus:outline-none focus:border-gold-500 focus:ring-1
                      focus:ring-gold-500 transition"
@@ -103,6 +107,7 @@
               v-model="formData.geminiApiKey"
               type="password"
               autocomplete="off"
+              data-testid="register-gemini-api-key-input"
               class="w-full px-4 py-3 bg-dark-700 border border-dark-600 rounded-lg text-white
                      placeholder-gray-500 focus:outline-none focus:border-gold-500 focus:ring-1
                      focus:ring-gold-500 transition"
@@ -128,6 +133,7 @@
           <button
             type="submit"
             :disabled="authStore.isLoading || passwordMismatch"
+            data-testid="submit-registration-button"
             class="w-full bg-gold-600 hover:bg-gold-700 disabled:bg-gray-600 disabled:cursor-not-allowed
                    text-dark-900 font-bold py-3 px-6 rounded-lg transition-colors duration-200
                    shadow-lg hover:shadow-gold-500/50"

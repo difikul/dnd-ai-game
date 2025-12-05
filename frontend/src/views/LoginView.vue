@@ -21,6 +21,7 @@
               type="text"
               required
               autocomplete="username"
+              data-testid="login-email-or-username-input"
               class="w-full px-4 py-3 bg-dark-700 border border-dark-600 rounded-lg text-white
                      placeholder-gray-500 focus:outline-none focus:border-gold-500 focus:ring-1
                      focus:ring-gold-500 transition"
@@ -40,6 +41,7 @@
               type="password"
               required
               autocomplete="current-password"
+              data-testid="login-password-input"
               class="w-full px-4 py-3 bg-dark-700 border border-dark-600 rounded-lg text-white
                      placeholder-gray-500 focus:outline-none focus:border-gold-500 focus:ring-1
                      focus:ring-gold-500 transition"
@@ -57,6 +59,7 @@
           <button
             type="submit"
             :disabled="authStore.isLoading"
+            data-testid="submit-login-button"
             class="w-full bg-gold-600 hover:bg-gold-700 disabled:bg-gray-600 disabled:cursor-not-allowed
                    text-dark-900 font-bold py-3 px-6 rounded-lg transition-colors duration-200
                    shadow-lg hover:shadow-gold-500/50"

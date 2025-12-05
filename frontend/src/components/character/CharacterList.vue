@@ -100,6 +100,7 @@ function createNewCharacter() {
         v-for="character in characters"
         :key="character.id"
         type="button"
+        :data-testid="`select-character-${character.id}`"
         class="character-card group bg-dark-800 hover:bg-dark-700 border-2 border-dark-600 hover:border-primary-500 rounded-lg p-6 transition-all duration-300 text-left"
         @click="selectCharacter(character.id)"
       >

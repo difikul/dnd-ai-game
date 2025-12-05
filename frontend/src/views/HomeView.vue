@@ -41,6 +41,7 @@
       <div class="space-y-4 mb-8">
         <button
           @click="router.push('/create-character')"
+          data-testid="start-new-game-button"
           class="w-full px-8 py-4 bg-primary-500 hover:bg-primary-600 text-white font-semibold rounded-lg transition-all duration-200 hover:shadow-lg flex items-center justify-center gap-3"
         >
           <span class="text-2xl">🎭</span>
@@ -80,6 +81,7 @@
               v-model="loadToken"
               type="text"
               placeholder="gs_xxxxxxxxxxxx"
+              data-testid="load-token-input"
               class="w-full px-4 py-3 bg-dark-900 border border-dark-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-primary-500 transition"
               @keydown.enter="handleLoadByToken"
               :disabled="loading"
@@ -92,6 +94,7 @@
           <button
             @click="handleLoadByToken"
             :disabled="loading || !loadToken.trim()"
+            data-testid="load-game-by-token-button"
             class="w-full px-6 py-3 bg-primary-500 hover:bg-primary-600 disabled:bg-dark-700 disabled:text-gray-500 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition"
           >
             {{ loading ? 'Načítám...' : 'Načíst hru' }}

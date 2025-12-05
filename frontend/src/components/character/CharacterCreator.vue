@@ -276,6 +276,7 @@ watch(characterName, () => {
           id="characterName"
           v-model="characterName"
           type="text"
+          data-testid="character-name-input"
           class="w-full px-4 py-3 bg-dark-800 border-2 border-dark-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-primary-500 transition-colors"
           placeholder="Zadej jméno tvé postavy..."
           maxlength="50"
@@ -510,6 +511,7 @@ watch(characterName, () => {
       <button
         v-else
         type="button"
+        data-testid="create-character-button"
         class="px-8 py-3 bg-fantasy-gold hover:bg-yellow-500 text-dark-900 font-bold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         :disabled="!canCreate || isCreating"
         @click="createCharacter"

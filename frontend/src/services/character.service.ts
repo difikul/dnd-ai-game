@@ -10,6 +10,7 @@ import type {
   UpdateCharacterDto,
   ApiResponse,
   CharacterListResponse,
+  ASIImprovement,
 } from '@/types/character'
 
 /**
@@ -98,6 +99,27 @@ export async function generateBackstory(data: {
   return response.data.data.backstory
 }
 
+/**
+ * Apply Ability Score Improvement (ASI)
+ * @param id - Character ID
+ * @param improvements - Object with stat improvements (e.g., { strength: 2 } or { dexterity: 1, constitution: 1 })
+ */
+export async function applyAbilityScoreImprovement(
+  id: string,
+  improvements: ASIImprovement
+): Promise<Character> {
+  const response = await api.post<ApiResponse<Character>>(
+    `/api/characters/${id}/ability-score-improvement`,
+    { improvements }
+  )
+
+  if (!response.data.success || !response.data.data) {
+    throw new Error(response.data.error || 'Nepodařilo se aplikovat ASI')
+  }
+
+  return response.data.data
+}
+
 export default {
   createCharacter,
   getCharacter,
@@ -105,4 +127,5 @@ export default {
   updateCharacter,
   deleteCharacter,
   generateBackstory,
+  applyAbilityScoreImprovement,
 }

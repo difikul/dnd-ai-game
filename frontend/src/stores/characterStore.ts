@@ -12,7 +12,9 @@ import {
   getAllCharacters as apiGetAllCharacters,
   updateCharacter as apiUpdateCharacter,
   deleteCharacter as apiDeleteCharacter,
+  applyAbilityScoreImprovement as apiApplyASI,
 } from '@/services/character.service'
+import type { ASIImprovement } from '@/types/character'
 import { getErrorMessage } from '@/services/api.service'
 
 export const useCharacterStore = defineStore('character', () => {
@@ -155,6 +157,102 @@ export const useCharacterStore = defineStore('character', () => {
   }
 
   /**
+   * Update character HP (from HP auto-update system)
+   * Updates the local state only - backend has already persisted the change
+   * @param newHP - New HP value
+   */
+  function updateHP(newHP: number): void {
+    if (currentCharacter.value) {
+      currentCharacter.value.hitPoints = newHP
+
+      // Also update in characters list if exists
+      const index = characters.value.findIndex((c) => c.id === currentCharacter.value!.id)
+      if (index !== -1) {
+        characters.value[index].hitPoints = newHP
+      }
+
+      console.log(`💚 Character HP updated: ${newHP}/${currentCharacter.value.maxHitPoints}`)
+    }
+  }
+
+  /**
+   * Update character XP (from XP auto-update system)
+   * Updates the local state only - backend has already persisted the change
+   * @param newXP - New XP value
+   */
+  function updateXP(newXP: number): void {
+    if (currentCharacter.value) {
+      currentCharacter.value.experience = newXP
+
+      // Also update in characters list if exists
+      const index = characters.value.findIndex((c) => c.id === currentCharacter.value!.id)
+      if (index !== -1) {
+        characters.value[index].experience = newXP
+      }
+
+      console.log(`✨ Character XP updated: ${newXP}`)
+    }
+  }
+
+  /**
+   * Handle level up (from level-up system)
+   * Updates the local state only - backend has already persisted the change
+   * @param newLevel - New level value
+   * @param newMaxHP - New maximum HP value
+   */
+  function handleLevelUp(newLevel: number, newMaxHP: number): void {
+    if (currentCharacter.value) {
+      const oldLevel = currentCharacter.value.level
+      currentCharacter.value.level = newLevel
+      currentCharacter.value.maxHitPoints = newMaxHP
+
+      // Also update in characters list if exists
+      const index = characters.value.findIndex((c) => c.id === currentCharacter.value!.id)
+      if (index !== -1) {
+        characters.value[index].level = newLevel
+        characters.value[index].maxHitPoints = newMaxHP
+      }
+
+      console.log(`🎉 Character leveled up: ${oldLevel} → ${newLevel}`)
+      console.log(`   New max HP: ${newMaxHP}`)
+    }
+  }
+
+  /**
+   * Apply Ability Score Improvement (ASI)
+   * @param improvements - Object with stat improvements
+   */
+  async function applyASI(improvements: ASIImprovement): Promise<Character> {
+    if (!currentCharacter.value) {
+      throw new Error('Není vybrána žádná postava')
+    }
+
+    loading.value = true
+    error.value = null
+
+    try {
+      const updatedCharacter = await apiApplyASI(currentCharacter.value.id, improvements)
+
+      // Update current character
+      currentCharacter.value = updatedCharacter
+
+      // Update in characters list
+      const index = characters.value.findIndex((c) => c.id === updatedCharacter.id)
+      if (index !== -1) {
+        characters.value[index] = updatedCharacter
+      }
+
+      console.log(`🎯 ASI applied: ${JSON.stringify(improvements)}`)
+      return updatedCharacter
+    } catch (err) {
+      error.value = getErrorMessage(err)
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  /**
    * Clear error
    */
   function clearError(): void {
@@ -191,6 +289,10 @@ export const useCharacterStore = defineStore('character', () => {
     updateCharacter,
     deleteCharacter,
     setCurrentCharacter,
+    updateHP,
+    updateXP,
+    handleLevelUp,
+    applyASI,
     clearError,
     reset,
   }

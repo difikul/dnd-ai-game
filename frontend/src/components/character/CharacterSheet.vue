@@ -49,8 +49,22 @@ function isHighlighted(ability: AbilityScoreName): boolean {
   return primaryAbilities.value.includes(ability)
 }
 
+/**
+ * Vrací efektivní hodnotu statistiky (základní + bonusy z vybavení)
+ * Pokud effectiveStats nejsou dostupné, vrátí základní hodnotu
+ */
 function getAbilityScore(ability: AbilityScoreName): number {
+  if (props.character.effectiveStats) {
+    return props.character.effectiveStats[ability]
+  }
   return props.character[ability]
+}
+
+/**
+ * Vrací bonus z vybavení pro danou statistiku
+ */
+function getEquipmentBonus(ability: AbilityScoreName): number {
+  return props.character.equippedBonuses?.[ability] || 0
 }
 </script>
 
@@ -113,12 +127,14 @@ function getAbilityScore(ability: AbilityScoreName): number {
       <div
         class="bg-dark-800 rounded-lg border-2 border-dark-600"
         :class="compact ? 'p-3' : 'p-6'"
+        data-testid="character-hp-display"
       >
         <h3 class="text-xs font-semibold text-gray-400 uppercase mb-2">Body života</h3>
         <div class="flex items-center justify-center gap-2 mb-2">
           <span
             class="font-bold text-fantasy-ruby"
             :class="compact ? 'text-3xl' : 'text-5xl'"
+            data-testid="character-current-hp"
           >
             {{ character.hitPoints }}
           </span>
@@ -126,6 +142,7 @@ function getAbilityScore(ability: AbilityScoreName): number {
           <span
             class="text-gray-400"
             :class="compact ? 'text-2xl' : 'text-3xl'"
+            data-testid="character-max-hp"
           >
             {{ character.maxHitPoints }}
           </span>
@@ -143,6 +160,7 @@ function getAbilityScore(ability: AbilityScoreName): number {
       <div
         class="bg-dark-800 rounded-lg border-2 border-dark-600"
         :class="compact ? 'p-3' : 'p-6'"
+        data-testid="character-ac-display"
       >
         <h3 class="text-xs font-semibold text-gray-400 uppercase mb-2">Obranné číslo</h3>
         <div class="flex items-center justify-center">
@@ -164,6 +182,7 @@ function getAbilityScore(ability: AbilityScoreName): number {
             <div
               class="absolute inset-0 flex items-center justify-center font-bold text-fantasy-sapphire"
               :class="compact ? 'text-3xl' : 'text-5xl'"
+              data-testid="character-ac-value"
             >
               {{ character.armorClass }}
             </div>
@@ -217,6 +236,7 @@ function getAbilityScore(ability: AbilityScoreName): number {
           :ability="ability"
           :score="getAbilityScore(ability)"
           :highlighted="isHighlighted(ability)"
+          :equipment-bonus="getEquipmentBonus(ability)"
         />
       </div>
     </section>

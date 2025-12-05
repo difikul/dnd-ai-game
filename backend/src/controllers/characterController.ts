@@ -260,6 +260,70 @@ export async function addExperience(req: Request, res: Response): Promise<void> 
 }
 
 /**
+ * POST /api/characters/:id/ability-score-improvement
+ * Aplikuje Ability Score Improvement (ASI)
+ * Body: { improvements: { strength: 1, dexterity: 1 } } nebo { improvements: { intelligence: 2 } }
+ */
+export async function applyAbilityScoreImprovement(req: Request, res: Response): Promise<void> {
+  try {
+    const { id } = req.params
+    const { improvements } = req.body
+
+    if (!improvements || typeof improvements !== 'object') {
+      res.status(400).json({
+        success: false,
+        error: 'Neplatná data',
+        message: 'improvements musí být objekt s hodnotami statistik'
+      })
+      return
+    }
+
+    const character = await characterService.applyAbilityScoreImprovement(
+      req.user!.userId,
+      id,
+      improvements
+    )
+
+    res.status(200).json({
+      success: true,
+      data: character,
+      message: 'Ability Score Improvement byl úspěšně aplikován'
+    })
+  } catch (error) {
+    console.error('Error v applyAbilityScoreImprovement controller:', error)
+
+    if (error instanceof Error) {
+      // Handle specific errors
+      if (error.message === 'Postava nenalezena') {
+        res.status(404).json({
+          success: false,
+          error: 'Postava nenalezena',
+          message: error.message
+        })
+        return
+      }
+
+      if (error.message.includes('nemá nevyužité ASI') ||
+          error.message.includes('Součet změn') ||
+          error.message.includes('překročí maximum')) {
+        res.status(400).json({
+          success: false,
+          error: 'Neplatný ASI request',
+          message: error.message
+        })
+        return
+      }
+    }
+
+    res.status(500).json({
+      success: false,
+      error: 'Nepodařilo se aplikovat ASI',
+      message: error instanceof Error ? error.message : 'Neznámá chyba'
+    })
+  }
+}
+
+/**
  * POST /api/characters/generate-backstory
  * Vygeneruje AI backstory pro postavu pomocí Gemini
  * Body: { name: string, race: string, class: string }

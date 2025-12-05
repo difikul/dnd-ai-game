@@ -106,6 +106,17 @@ router.post(
   characterController.addExperience
 )
 
+/**
+ * POST /api/characters/:id/ability-score-improvement
+ * Aplikuje Ability Score Improvement (ASI)
+ * Body: { improvements: { strength: 1, dexterity: 1 } } nebo { improvements: { intelligence: 2 } }
+ */
+router.post(
+  '/:id/ability-score-improvement',
+  validateUUID('id'),
+  characterController.applyAbilityScoreImprovement
+)
+
 // ============================================================================
 // AI Generation Routes
 // ============================================================================

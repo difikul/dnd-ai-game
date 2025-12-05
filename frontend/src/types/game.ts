@@ -151,6 +151,93 @@ export interface SendActionRequest {
   characterId: string
 }
 
+// HP Change Data (from backend HP auto-update)
+export interface HPChangeData {
+  amount: number          // Amount of HP change (negative = damage, positive = healing)
+  newHP: number           // New HP value after change
+  maxHP: number           // Maximum HP for reference
+  source: 'pattern' | 'text'  // How it was detected by backend
+}
+
+// XP Change Data (from backend XP auto-update)
+export interface XPChangeData {
+  amount: number          // Amount of XP gained
+  newXP: number           // New total XP
+  nextLevelXP: number     // XP required for next level
+  source: 'pattern' | 'text'  // How it was detected by backend
+  shouldLevelUp: boolean  // True if character reached level threshold
+}
+
+// Level Up Data (from backend level-up processing)
+export interface LevelUpData {
+  newLevel: number        // New character level
+  hpGained: number        // HP gained from level up
+  newMaxHP: number        // New maximum HP
+  abilityScoreImprovement: boolean  // True if ASI available at this level
+}
+
+// Item Gain Data (from backend AI [ITEM-GAIN] parsing)
+export interface ItemGainData {
+  name: string
+  type: string            // weapon, armor, potion, accessory, misc
+  rarity: string          // common, uncommon, rare, very_rare, legendary
+  description?: string
+  damage?: string
+  armorValue?: number
+  quantity?: number
+  statBonuses?: {
+    strength?: number
+    dexterity?: number
+    constitution?: number
+    intelligence?: number
+    wisdom?: number
+    charisma?: number
+    acBonus?: number
+    hpBonus?: number
+  }
+  requiresAttunement?: boolean
+}
+
+// Inventory Item (full item from database)
+export interface InventoryItem {
+  id: string
+  characterId: string
+  name: string
+  type: string
+  description?: string
+  quantity: number
+  equipped: boolean
+  damage?: string
+  armorValue?: number
+  properties?: Record<string, any>
+  statBonuses?: {
+    strength?: number
+    dexterity?: number
+    constitution?: number
+    intelligence?: number
+    wisdom?: number
+    charisma?: number
+    acBonus?: number
+    hpBonus?: number
+  }
+  rarity: string
+  requiresAttunement: boolean
+  isAttuned: boolean
+  createdAt: Date
+}
+
+// Stat Bonuses from equipped items
+export interface EquippedStatBonuses {
+  strength?: number
+  dexterity?: number
+  constitution?: number
+  intelligence?: number
+  wisdom?: number
+  charisma?: number
+  acBonus?: number
+  hpBonus?: number
+}
+
 // Send Action Response
 export interface SendActionResponse {
   response: string
@@ -158,6 +245,11 @@ export interface SendActionResponse {
   sessionUpdated?: boolean
   worldStateChanged?: boolean
   atmosphere?: AtmosphereData
+  hpChange?: HPChangeData    // HP auto-update metadata
+  xpChange?: XPChangeData    // XP auto-update metadata
+  levelUp?: LevelUpData      // Level-up metadata
+  itemGain?: ItemGainData    // Item gain metadata (for player confirmation)
+  characterDied?: boolean     // True if character HP reached 0
 }
 
 // Load Game Response

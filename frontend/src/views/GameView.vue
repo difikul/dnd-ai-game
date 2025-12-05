@@ -95,8 +95,43 @@
 
             <!-- Action Buttons -->
             <div class="flex gap-2 flex-shrink-0">
+              <!-- ASI Available Button -->
+              <button
+                v-if="character?.pendingASI"
+                @click="showASIModal = true"
+                data-testid="asi-button"
+                class="px-3 sm:px-4 py-2 bg-yellow-600 hover:bg-yellow-700 rounded-lg transition
+                       flex items-center gap-2 shadow-sm animate-pulse"
+                title="Ability Score Improvement k dispozici!"
+              >
+                <span class="text-lg">⬆️</span>
+                <span class="hidden sm:inline">ASI</span>
+              </button>
+
+              <!-- Inventory Button -->
+              <button
+                @click="showInventory = !showInventory"
+                data-testid="inventory-button"
+                class="px-3 sm:px-4 py-2 rounded-lg transition flex items-center gap-2 shadow-sm"
+                :class="{
+                  'bg-primary-600 hover:bg-primary-700 animate-pulse': inventoryStore.hasPendingItem,
+                  'bg-dark-700 hover:bg-dark-600': !inventoryStore.hasPendingItem
+                }"
+                :title="inventoryStore.hasPendingItem ? 'Nový předmět k potvrzení!' : 'Inventář'"
+              >
+                <span class="text-lg">🎒</span>
+                <span class="hidden sm:inline">Inventář</span>
+                <span
+                  v-if="inventoryStore.itemCount > 0"
+                  class="text-xs bg-dark-900 px-1.5 py-0.5 rounded-full"
+                >
+                  {{ inventoryStore.itemCount }}
+                </span>
+              </button>
+
               <button
                 @click="showDiceRoller = !showDiceRoller"
+                data-testid="open-dice-roller-button"
                 class="px-3 sm:px-4 py-2 bg-dark-700 hover:bg-dark-600 rounded-lg transition
                        flex items-center gap-2 shadow-sm"
                 title="Dice Roller"
@@ -108,6 +143,7 @@
               <button
                 @click="handleSaveGame"
                 :disabled="saving"
+                data-testid="save-game-button"
                 class="px-3 sm:px-4 py-2 bg-dark-700 hover:bg-dark-600 rounded-lg transition
                        disabled:opacity-50 disabled:cursor-not-allowed
                        flex items-center gap-2 shadow-sm"
@@ -119,6 +155,7 @@
 
               <button
                 @click="handleLeaveGame"
+                data-testid="leave-game-button"
                 class="px-3 sm:px-4 py-2 bg-dark-700 hover:bg-dark-600 rounded-lg transition
                        flex items-center gap-2 shadow-sm"
                 title="Opustit hru"
@@ -189,10 +226,52 @@
             @click="showDiceRoller = false"
             class="mt-4 w-full bg-dark-700 hover:bg-dark-600 px-4 py-2 rounded transition text-white"
           >
+            Zavrit
+          </button>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- ASI Modal -->
+    <Teleport to="body">
+      <AbilityScoreImprovementModal
+        :is-open="showASIModal"
+        :character="character"
+        @close="showASIModal = false"
+        @applied="handleASIApplied"
+      />
+    </Teleport>
+
+    <!-- Inventory Modal -->
+    <Teleport to="body">
+      <div
+        v-if="showInventory"
+        class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4"
+        @click.self="showInventory = false"
+      >
+        <div class="max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <InventoryPanel
+            v-if="character"
+            :character-id="character.id"
+          />
+          <button
+            @click="showInventory = false"
+            class="mt-4 w-full bg-dark-700 hover:bg-dark-600 px-4 py-2 rounded transition text-white"
+          >
             Zavřít
           </button>
         </div>
       </div>
+    </Teleport>
+
+    <!-- Item Confirm Modal (for AI-detected items) -->
+    <Teleport to="body">
+      <ItemConfirmModal
+        :is-open="showItemConfirm"
+        :item="inventoryStore.pendingItemGain"
+        @confirm="handleItemConfirm"
+        @reject="handleItemReject"
+      />
     </Teleport>
   </div>
 </template>
@@ -203,18 +282,23 @@ import { useRoute, useRouter } from 'vue-router'
 import { useGameStore } from '@/stores/gameStore'
 import { useCharacterStore } from '@/stores/characterStore'
 import { useChatStore } from '@/stores/chatStore'
+import { useInventoryStore } from '@/stores/inventoryStore'
 import { useDice } from '@/composables/useDice'
 import type { DiceRequirement } from '@/types/game'
 import GameChat from '@/components/game/GameChat.vue'
 import CharacterSheet from '@/components/character/CharacterSheet.vue'
 import DiceRoller from '@/components/game/DiceRoller.vue'
 import AtmosphericBackground from '@/components/game/AtmosphericBackground.vue'
+import AbilityScoreImprovementModal from '@/components/character/AbilityScoreImprovementModal.vue'
+import InventoryPanel from '@/components/inventory/InventoryPanel.vue'
+import ItemConfirmModal from '@/components/inventory/ItemConfirmModal.vue'
 
 const route = useRoute()
 const router = useRouter()
 const gameStore = useGameStore()
 const characterStore = useCharacterStore()
 const chatStore = useChatStore()
+const inventoryStore = useInventoryStore()
 const { rollDice, isRolling: isDiceRolling } = useDice()
 
 // State
@@ -226,6 +310,9 @@ const savedToken = ref('')
 const tokenCopied = ref(false)
 const showCharacterSheet = ref(false)
 const showDiceRoller = ref(false)
+const showASIModal = ref(false)
+const showInventory = ref(false)
+const showItemConfirm = ref(false)
 
 // Computed
 const session = computed(() => gameStore.currentSession)
@@ -352,6 +439,90 @@ function handleLeaveGame() {
     router.push('/')
   }
 }
+
+/**
+ * Handle ASI modal applied
+ */
+function handleASIApplied() {
+  console.log('ASI byl uspesne aplikovan')
+}
+
+/**
+ * Handle item confirm from ItemConfirmModal
+ */
+async function handleItemConfirm() {
+  if (!character.value) return
+
+  try {
+    const item = await inventoryStore.confirmPendingItem(character.value.id)
+    showItemConfirm.value = false
+
+    if (item) {
+      console.log(`🎁 Předmět "${item.name}" byl přidán do inventáře`)
+      chatStore.addSystemMessage(
+        `📦 **Předmět přidán do inventáře!**\n\n` +
+        `${item.name} (${item.rarity})`
+      )
+    }
+  } catch (err: any) {
+    console.error('Chyba při přidávání předmětu:', err)
+    alert(`Chyba při přidávání předmětu: ${err.message}`)
+  }
+}
+
+/**
+ * Handle item reject from ItemConfirmModal
+ */
+function handleItemReject() {
+  inventoryStore.rejectPendingItem()
+  showItemConfirm.value = false
+  console.log('🚫 Hráč odmítl předmět')
+}
+
+/**
+ * Watch for pendingASI changes to auto-show ASI modal
+ */
+watch(
+  () => character.value?.pendingASI,
+  (hasPendingASI, oldValue) => {
+    // Only show modal when pendingASI becomes true (not on initial load with true)
+    if (hasPendingASI && oldValue === false) {
+      console.log('Postava ma nevyuzite ASI - zobrazuji modal')
+      showASIModal.value = true
+    }
+  }
+)
+
+/**
+ * Watch for pending item gain to auto-show confirmation modal
+ */
+watch(
+  () => inventoryStore.hasPendingItem,
+  (hasPending) => {
+    if (hasPending) {
+      console.log('🎁 Nový předmět k potvrzení - zobrazuji modal')
+      showItemConfirm.value = true
+    }
+  }
+)
+
+/**
+ * Load inventory when character changes
+ */
+watch(
+  () => character.value?.id,
+  async (characterId) => {
+    if (characterId) {
+      try {
+        await inventoryStore.loadInventory(characterId)
+        console.log(`📦 Inventář načten pro postavu ${characterId}`)
+      } catch (err) {
+        console.error('Chyba při načítání inventáře:', err)
+      }
+    }
+  },
+  { immediate: true }
+)
 </script>
 
 <style scoped>

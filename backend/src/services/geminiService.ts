@@ -6,7 +6,7 @@ import {
   buildCombatPrompt,
   buildCharacterContext,
 } from '../utils/promptTemplates'
-import { NarratorResponse, DiceRequirement } from '../types/dnd.types'
+import { NarratorResponse, DiceRequirement, HPChangeResult, XPChangeResult, ItemGainResult } from '../types/dnd.types'
 import { getUserGeminiKey } from './authService'
 import { quotaService } from './quotaService'
 
@@ -84,6 +84,251 @@ function parseDiceRequirement(diceString: string): DiceRequirement | null {
     console.error('Failed to parse dice requirement:', error)
     return null
   }
+}
+
+/**
+ * Parse HP change from AI narrative
+ * Hybrid approach:
+ * 1. Primary: Structured pattern [HP-CHANGE: -5]
+ * 2. Fallback: Text parsing for Czech phrases
+ *
+ * @param narratorText - AI narrative text
+ * @param currentHP - Current character HP (for absolute HP patterns)
+ * @returns HPChangeResult with change amount, source, and confidence
+ */
+function parseHPChange(narratorText: string, currentHP: number): HPChangeResult {
+  const result: HPChangeResult = {
+    change: 0,
+    source: null,
+    confidence: 0,
+    raw: null
+  }
+
+  // 1. Try structured pattern first: [HP-CHANGE: -5] or [HP-CHANGE: +8]
+  const patternMatch = narratorText.match(/\[HP-CHANGE:\s*([+-]?\d+)\]/)
+  if (patternMatch) {
+    result.change = parseInt(patternMatch[1])
+    result.source = 'pattern'
+    result.confidence = 1.0
+    result.raw = patternMatch[0]
+    console.log(`🩸 Detected HP change (pattern): ${result.change > 0 ? '+' : ''}${result.change}`)
+    return result
+  }
+
+  // 2. Text parsing fallback (Czech phrases)
+  const patterns = [
+    // Damage patterns
+    { regex: /utrpíš (\d+) damage/i, multiplier: -1, confidence: 0.9 },
+    { regex: /ztratíš (\d+) HP/i, multiplier: -1, confidence: 0.9 },
+    { regex: /HP se snižuje o (\d+)/i, multiplier: -1, confidence: 0.85 },
+    { regex: /utrží (\d+) poškození/i, multiplier: -1, confidence: 0.85 },
+    { regex: /dostaneš (\d+) damage/i, multiplier: -1, confidence: 0.85 },
+    { regex: /způsobíš si (\d+) damage/i, multiplier: -1, confidence: 0.8 },
+    { regex: /Utržíš (\d+) poškození/i, multiplier: -1, confidence: 0.85 },
+
+    // Healing patterns
+    { regex: /vyléčíš si (\d+) HP/i, multiplier: 1, confidence: 0.9 },
+    { regex: /obnovíš si (\d+) HP/i, multiplier: 1, confidence: 0.9 },
+    { regex: /HP se zvyšuje o (\d+)/i, multiplier: 1, confidence: 0.85 },
+    { regex: /získáš zpět (\d+) HP/i, multiplier: 1, confidence: 0.85 },
+
+    // Absolute HP pattern: "HP se snižuje na 7/17" or "HP: 7/17"
+    { regex: /HP:\s*(\d+)\/\d+/i, absolute: true, confidence: 0.7 },
+    { regex: /HP se snižuje na (\d+)\/\d+/i, absolute: true, confidence: 0.75 }
+  ]
+
+  for (const pattern of patterns) {
+    const match = narratorText.match(pattern.regex)
+    if (match) {
+      if (pattern.absolute) {
+        // Extract target HP and calculate delta
+        const targetHP = parseInt(match[1])
+        result.change = targetHP - currentHP
+      } else {
+        result.change = parseInt(match[1]) * (pattern.multiplier || 1)
+      }
+
+      result.source = 'text'
+      result.confidence = pattern.confidence
+      result.raw = match[0]
+
+      console.log(`🩸 Detected HP change (text): ${result.change > 0 ? '+' : ''}${result.change} from "${result.raw}"`)
+      return result
+    }
+  }
+
+  // No HP change detected
+  return result
+}
+
+/**
+ * Parse XP gain from AI narrative
+ * Hybrid approach:
+ * 1. Primary: Structured pattern [XP-GAIN: +100]
+ * 2. Fallback: Text parsing for Czech phrases
+ *
+ * @param narratorText - AI narrative text
+ * @returns XPChangeResult with gain amount, source, and confidence
+ */
+function parseXPGain(narratorText: string): XPChangeResult {
+  const result: XPChangeResult = {
+    gain: 0,
+    source: null,
+    confidence: 0,
+    raw: null
+  }
+
+  // 1. Try structured pattern first: [XP-GAIN: +100] or [XP-GAIN: 50]
+  const patternMatch = narratorText.match(/\[XP-GAIN:\s*\+?(\d+)\]/)
+  if (patternMatch) {
+    result.gain = parseInt(patternMatch[1])
+    result.source = 'pattern'
+    result.confidence = 1.0
+    result.raw = patternMatch[0]
+    console.log(`✨ Detected XP gain (pattern): +${result.gain}`)
+    return result
+  }
+
+  // 2. Text parsing fallback (Czech phrases)
+  const patterns = [
+    // XP gain patterns
+    { regex: /získáváš (\d+) zkušeností/i, confidence: 0.95 },
+    { regex: /získáváš (\d+) zkušenostních bodů/i, confidence: 0.95 },
+    { regex: /dostáváš (\d+) XP/i, confidence: 0.9 },
+    { regex: /dostal jsi (\d+) XP/i, confidence: 0.9 },
+    { regex: /získal jsi (\d+) zkušeností/i, confidence: 0.9 },
+    { regex: /získáváš (\d+) experience/i, confidence: 0.85 },
+    { regex: /obdržíš (\d+) XP/i, confidence: 0.85 },
+    { regex: /(\d+) zkušenostních bodů za/i, confidence: 0.8 },
+    { regex: /(\d+) XP za splnění/i, confidence: 0.85 },
+    { regex: /odměna: (\d+) XP/i, confidence: 0.85 },
+    { regex: /[\+](\d+) XP/i, confidence: 0.75 },
+  ]
+
+  for (const pattern of patterns) {
+    const match = narratorText.match(pattern.regex)
+    if (match) {
+      result.gain = parseInt(match[1])
+      result.source = 'text'
+      result.confidence = pattern.confidence
+      result.raw = match[0]
+
+      console.log(`✨ Detected XP gain (text): +${result.gain} from "${result.raw}"`)
+      return result
+    }
+  }
+
+  // No XP gain detected
+  return result
+}
+
+/**
+ * Parse item gain from AI narrator response
+ * Supports structured [ITEM-GAIN: JSON] tags and text parsing fallback
+ * @param narratorText - AI narrative text
+ * @returns ItemGainResult with item data, source, and confidence
+ */
+function parseItemGain(narratorText: string): ItemGainResult {
+  const result: ItemGainResult = {
+    found: false,
+    item: null,
+    confidence: 0,
+    raw: null
+  }
+
+  // 1. Try structured pattern first: [ITEM-GAIN: {...JSON...}]
+  const patternMatch = narratorText.match(/\[ITEM-GAIN:\s*(\{[^}]+\})\]/)
+  if (patternMatch) {
+    try {
+      const itemData = JSON.parse(patternMatch[1])
+
+      // Validate required fields
+      if (!itemData.name || !itemData.type || !itemData.rarity) {
+        console.warn('⚠️ ITEM-GAIN pattern found but missing required fields (name, type, rarity)')
+        return result
+      }
+
+      // Validate type
+      const validTypes = ['weapon', 'armor', 'potion', 'accessory', 'misc']
+      if (!validTypes.includes(itemData.type)) {
+        console.warn(`⚠️ Invalid item type: ${itemData.type}`)
+        itemData.type = 'misc'
+      }
+
+      // Validate rarity
+      const validRarities = ['common', 'uncommon', 'rare', 'very_rare', 'legendary']
+      if (!validRarities.includes(itemData.rarity)) {
+        console.warn(`⚠️ Invalid rarity: ${itemData.rarity}, defaulting to common`)
+        itemData.rarity = 'common'
+      }
+
+      result.found = true
+      result.item = {
+        name: itemData.name,
+        type: itemData.type,
+        rarity: itemData.rarity,
+        description: itemData.description || undefined,
+        damage: itemData.damage || undefined,
+        armorValue: itemData.armorValue || undefined,
+        quantity: itemData.quantity || 1,
+        statBonuses: itemData.statBonuses || undefined,
+        requiresAttunement: itemData.requiresAttunement || false
+      }
+      result.confidence = 1.0
+      result.raw = patternMatch[0]
+
+      console.log(`🎁 Detected item gain (pattern): ${result.item.name} (${result.item.rarity} ${result.item.type})`)
+      return result
+    } catch (e) {
+      console.warn('⚠️ Failed to parse ITEM-GAIN JSON:', e)
+      result.raw = patternMatch[0]
+      return result
+    }
+  }
+
+  // 2. Text parsing fallback - detect common item pickup phrases (Czech)
+  // Lower confidence because we don't have full item details
+  const itemPatterns = [
+    // Direct item acquisition
+    { regex: /nalezl jsi ([^.!,]+)/i, confidence: 0.6 },
+    { regex: /našel jsi ([^.!,]+)/i, confidence: 0.6 },
+    { regex: /získáváš ([^.!,]+)/i, confidence: 0.55 },
+    { regex: /dostal jsi ([^.!,]+)/i, confidence: 0.55 },
+    { regex: /sebral jsi ([^.!,]+)/i, confidence: 0.6 },
+    { regex: /vzal jsi ([^.!,]+)/i, confidence: 0.55 },
+    { regex: /uchopil jsi ([^.!,]+)/i, confidence: 0.55 },
+  ]
+
+  for (const pattern of itemPatterns) {
+    const match = narratorText.match(pattern.regex)
+    if (match) {
+      const itemName = match[1].trim()
+
+      // Skip if it looks like XP, gold, or abstract concepts
+      if (/\d+\s*(xp|zkušenost|gold|zlaťák|stříbr)/i.test(itemName)) {
+        continue
+      }
+      if (itemName.length < 3 || itemName.length > 50) {
+        continue
+      }
+
+      result.found = true
+      result.item = {
+        name: itemName,
+        type: 'misc', // Default type when parsed from text
+        rarity: 'common', // Default rarity
+        quantity: 1
+      }
+      result.confidence = pattern.confidence
+      result.raw = match[0]
+
+      console.log(`🎁 Detected item gain (text): ${result.item.name} from "${result.raw}"`)
+      return result
+    }
+  }
+
+  // No item gain detected
+  return result
 }
 
 /**
@@ -399,5 +644,10 @@ export const geminiService = {
   summarizeConversation: wrapWithTracking('summarizeConversation', geminiServiceInstance.summarizeConversation.bind(geminiServiceInstance)),
   generateNPCDialog: wrapWithTracking('generateNPCDialog', geminiServiceInstance.generateNPCDialog.bind(geminiServiceInstance)),
   generateCharacterBackstory: wrapWithTracking('generateCharacterBackstory', geminiServiceInstance.generateCharacterBackstory.bind(geminiServiceInstance)),
-  analyzeAtmosphere: wrapWithTracking('analyzeAtmosphere', geminiServiceInstance.analyzeAtmosphere.bind(geminiServiceInstance))
+  analyzeAtmosphere: wrapWithTracking('analyzeAtmosphere', geminiServiceInstance.analyzeAtmosphere.bind(geminiServiceInstance)),
+
+  // Utility functions (no tracking needed)
+  parseHPChange,
+  parseXPGain,
+  parseItemGain
 }

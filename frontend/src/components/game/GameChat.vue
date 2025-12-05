@@ -1,12 +1,12 @@
 <template>
-  <div class="flex flex-col h-full bg-dark-900">
+  <div class="flex flex-col h-full bg-dark-900/70 backdrop-blur-sm">
     <!-- Message List -->
     <div
       ref="messageContainer"
       class="flex-1 overflow-y-auto p-6 scroll-smooth"
     >
       <!-- Centered Container -->
-      <div class="max-w-4xl mx-auto space-y-6">
+      <div class="max-w-4xl mx-auto space-y-6" data-testid="narrator-messages-container">
         <!-- Empty State -->
         <div
           v-if="!hasMessages && !isTyping"
@@ -33,7 +33,7 @@
     </div>
 
     <!-- Input Area -->
-    <div class="border-t border-dark-700 p-6 bg-dark-800">
+    <div class="border-t border-dark-700 p-6 bg-dark-800/90 backdrop-blur-sm">
       <div class="max-w-4xl mx-auto">
         <form @submit.prevent="handleSend" class="space-y-3">
           <!-- Error Message -->
@@ -51,6 +51,7 @@
               type="text"
               placeholder="Co chceš dělat?"
               :disabled="isLoading"
+              data-testid="action-input"
               class="flex-1 bg-dark-900 text-white px-4 py-3 rounded-lg
                      focus:outline-none focus:ring-2 focus:ring-primary-500
                      disabled:opacity-50 disabled:cursor-not-allowed
@@ -60,6 +61,7 @@
             <button
               type="submit"
               :disabled="isLoading || !inputText.trim()"
+              data-testid="submit-action-button"
               class="bg-primary-500 hover:bg-primary-600 text-white
                      px-6 py-3 rounded-lg font-semibold transition
                      disabled:opacity-50 disabled:cursor-not-allowed

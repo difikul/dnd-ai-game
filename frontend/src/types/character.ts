@@ -58,6 +58,47 @@ export interface AbilityScores {
   charisma: number
 }
 
+// ASI (Ability Score Improvement) Types
+export interface ASIHistoryEntry {
+  level: number
+  changes: Partial<AbilityScores>
+  appliedAt: string
+}
+
+export interface ASIImprovement {
+  strength?: number
+  dexterity?: number
+  constitution?: number
+  intelligence?: number
+  wisdom?: number
+  charisma?: number
+}
+
+// ASI Levels (D&D 5e standard)
+export const ASI_LEVELS = [4, 8, 12, 16, 19] as const
+
+// Effective Stats (BUG-001 fix - bonusy z vybavení)
+export interface EffectiveStats {
+  strength: number
+  dexterity: number
+  constitution: number
+  intelligence: number
+  wisdom: number
+  charisma: number
+}
+
+// Equipped Bonuses (bonusy z nasazeného a propojeného vybavení)
+export interface EquippedBonuses {
+  strength?: number
+  dexterity?: number
+  constitution?: number
+  intelligence?: number
+  wisdom?: number
+  charisma?: number
+  acBonus?: number
+  hpBonus?: number
+}
+
 // Main Character Interface
 export interface Character {
   id: string
@@ -82,9 +123,19 @@ export interface Character {
   // Progression
   experience: number
 
+  // ASI (Ability Score Improvement)
+  pendingASI: boolean
+  asiHistory: ASIHistoryEntry[]
+
   // Optional Fields
   avatarUrl?: string
   background?: string
+
+  // Efektivní statistiky (základní + bonusy z vybavení) - BUG-001 fix
+  effectiveStats?: EffectiveStats
+
+  // Bonusy z vybavení (pro vizuální indikaci)
+  equippedBonuses?: EquippedBonuses
 
   // Metadata
   createdAt: string

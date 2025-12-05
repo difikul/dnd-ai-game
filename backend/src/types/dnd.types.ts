@@ -136,3 +136,43 @@ export interface NarratorResponse {
   diceRequirements?: DiceRequirement
   suggestedActions?: string[]
 }
+
+export interface HPChangeResult {
+  change: number                      // Amount of HP change (negative = damage, positive = healing)
+  source: 'pattern' | 'text' | null   // How it was detected
+  confidence: number                  // 0-1, how confident we are in the parsing
+  raw: string | null                  // Raw matched text for debugging
+}
+
+export interface XPChangeResult {
+  gain: number                        // Amount of XP gained (always positive or 0)
+  source: 'pattern' | 'text' | null   // How it was detected
+  confidence: number                  // 0-1, how confident we are in the parsing
+  raw: string | null                  // Raw matched text for debugging
+}
+
+export interface ItemGainResult {
+  found: boolean                      // Whether an item was found in the text
+  item: {
+    name: string
+    type: string                      // weapon, armor, potion, accessory, misc
+    rarity: string                    // common, uncommon, rare, very_rare, legendary
+    description?: string
+    damage?: string                   // For weapons: "1d8+1"
+    armorValue?: number               // For armor
+    quantity?: number
+    statBonuses?: {
+      strength?: number
+      dexterity?: number
+      constitution?: number
+      intelligence?: number
+      wisdom?: number
+      charisma?: number
+      acBonus?: number
+      hpBonus?: number
+    }
+    requiresAttunement?: boolean
+  } | null
+  confidence: number                  // 0-1, how confident we are in the parsing
+  raw: string | null                  // Raw matched text for debugging
+}

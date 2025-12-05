@@ -65,7 +65,8 @@ export const startGameSchema = z.object({
 
 export const playerActionSchema = z.object({
   action: z.string().min(1, 'Akce nesmí být prázdná').max(500, 'Akce může mít maximálně 500 znaků'),
-  characterId: z.string().uuid('Neplatné UUID postavy')
+  characterId: z.string().uuid('Neplatné UUID postavy'),
+  diceRollResult: z.number().int().optional() // ✅ Bug #3 fix: Optional dice roll result z frontendu
 }).strict()
 
 export const sessionIdParamSchema = z.object({
@@ -89,6 +90,45 @@ export interface PlayerActionResponse {
   diceType?: string
   metadata?: any
   atmosphere?: AtmosphereData
+  hpChange?: {
+    amount: number          // Amount of HP change (negative = damage, positive = healing)
+    newHP: number           // New HP value after change
+    maxHP: number           // Maximum HP for reference
+    source: 'pattern' | 'text'  // How it was detected
+  }
+  xpChange?: {
+    amount: number          // Amount of XP gained
+    newXP: number           // New total XP
+    nextLevelXP: number     // XP required for next level
+    source: 'pattern' | 'text'  // How it was detected
+    shouldLevelUp: boolean  // True if character reached level threshold
+  }
+  levelUp?: {
+    newLevel: number        // New character level
+    hpGained: number        // HP gained from level up
+    newMaxHP: number        // New maximum HP
+    abilityScoreImprovement: boolean  // True if ASI available at this level
+  }
+  itemGain?: {              // Item found/acquired by player
+    name: string
+    type: string            // weapon, armor, potion, accessory, misc
+    rarity: string          // common, uncommon, rare, very_rare, legendary
+    description?: string
+    damage?: string         // For weapons: "1d8+1"
+    armorValue?: number     // For armor
+    statBonuses?: {         // For magical items
+      strength?: number
+      dexterity?: number
+      constitution?: number
+      intelligence?: number
+      wisdom?: number
+      charisma?: number
+      acBonus?: number
+      hpBonus?: number
+    }
+    requiresAttunement?: boolean
+  }
+  characterDied?: boolean   // True if character HP reached 0
 }
 
 export interface GameStateResponse {
@@ -193,4 +233,34 @@ export interface TestNarratorResponse {
   response: string
   model: string
   timestamp: string
+}
+
+// ============================================================================
+// Character Effective Stats Types (BUG-001 fix)
+// ============================================================================
+
+/**
+ * Efektivní statistiky postavy (základní statistiky + bonusy z vybavení)
+ */
+export interface EffectiveStats {
+  strength: number
+  dexterity: number
+  constitution: number
+  intelligence: number
+  wisdom: number
+  charisma: number
+}
+
+/**
+ * Bonusy z nasazeného a propojeného vybavení
+ */
+export interface EquippedBonuses {
+  strength?: number
+  dexterity?: number
+  constitution?: number
+  intelligence?: number
+  wisdom?: number
+  charisma?: number
+  acBonus?: number
+  hpBonus?: number
 }

@@ -11,6 +11,7 @@ import { getErrorMessage } from '@/services/api.service'
 import { useGameStore } from './gameStore'
 import { useCharacterStore } from './characterStore'
 import { useAtmosphereStore } from './atmosphereStore'
+import { useInventoryStore } from './inventoryStore'
 
 export const useChatStore = defineStore('chat', () => {
   // State
@@ -130,6 +131,98 @@ export const useChatStore = defineStore('chat', () => {
         await atmosphereStore.updateAtmosphere(response.atmosphere)
       } else {
         console.warn('⚠️  No atmosphere data in response')
+      }
+
+      // ✨ HP AUTO-UPDATE: Process HP changes from backend
+      if (response.hpChange) {
+        console.log(`💚 HP Change detected: ${response.hpChange.amount > 0 ? '+' : ''}${response.hpChange.amount}`)
+        console.log(`   New HP: ${response.hpChange.newHP}/${response.hpChange.maxHP}`)
+        console.log(`   Source: ${response.hpChange.source}`)
+
+        // Update character HP in store
+        characterStore.updateHP(response.hpChange.newHP)
+
+        // Show toast notification
+        const isDamage = response.hpChange.amount < 0
+        const emoji = isDamage ? '💔' : '💚'
+        const changeText = `${emoji} ${isDamage ? '' : '+'}${response.hpChange.amount} HP`
+        const hpText = `${response.hpChange.newHP}/${response.hpChange.maxHP} HP`
+
+        addSystemMessage(
+          `${changeText}\n` +
+          `Nové HP: ${hpText}`
+        )
+
+        // Handle character death
+        if (response.characterDied) {
+          console.log('💀 Character died!')
+          addSystemMessage(
+            `💀 **Tvá postava zemřela!**\n\n` +
+            `HP kleslo na 0. Herní session byla ukončena.`
+          )
+        }
+      }
+
+      // ✨ XP AUTO-UPDATE: Process XP gains from backend
+      if (response.xpChange) {
+        console.log(`✨ XP Gain detected: +${response.xpChange.amount}`)
+        console.log(`   New XP: ${response.xpChange.newXP}/${response.xpChange.nextLevelXP}`)
+        console.log(`   Source: ${response.xpChange.source}`)
+        console.log(`   Should level up: ${response.xpChange.shouldLevelUp}`)
+
+        // Update character XP in store
+        characterStore.updateXP(response.xpChange.newXP)
+
+        // Show XP gain notification
+        const xpText = `✨ +${response.xpChange.amount} XP`
+        const progressText = `${response.xpChange.newXP}/${response.xpChange.nextLevelXP} XP do dalšího levelu`
+
+        addSystemMessage(
+          `${xpText}\n` +
+          `${progressText}`
+        )
+      }
+
+      // ✨ LEVEL UP: Process level-up from backend
+      if (response.levelUp) {
+        console.log(`🎉 Level Up detected: Level ${response.levelUp.newLevel}`)
+        console.log(`   HP gained: +${response.levelUp.hpGained}`)
+        console.log(`   New max HP: ${response.levelUp.newMaxHP}`)
+        console.log(`   ASI available: ${response.levelUp.abilityScoreImprovement}`)
+
+        // Update character level and HP in store
+        characterStore.handleLevelUp(response.levelUp.newLevel, response.levelUp.newMaxHP)
+
+        // Show level up notification
+        let levelUpMessage = `🎉 **LEVEL UP!**\n\n` +
+          `Nový level: ${response.levelUp.newLevel}\n` +
+          `HP bonus: +${response.levelUp.hpGained}\n` +
+          `Nové maximum HP: ${response.levelUp.newMaxHP}`
+
+        if (response.levelUp.abilityScoreImprovement) {
+          levelUpMessage += `\n\n⭐ **Ability Score Improvement**\n` +
+            `Můžeš si zvýšit dvě vlastnosti o +1 nebo jednu o +2!`
+        }
+
+        addSystemMessage(levelUpMessage)
+      }
+
+      // ✨ ITEM GAIN: Process item gain from backend AI [ITEM-GAIN] parsing
+      if (response.itemGain) {
+        const inventoryStore = useInventoryStore()
+        console.log(`🎁 Item Gain detected: ${response.itemGain.name}`)
+        console.log(`   Type: ${response.itemGain.type}`)
+        console.log(`   Rarity: ${response.itemGain.rarity}`)
+
+        // Set pending item for player confirmation (modal will be shown in GameView)
+        inventoryStore.setPendingItemGain(response.itemGain)
+
+        // Show notification that item is available
+        addSystemMessage(
+          `🎁 **Nalezený předmět!**\n\n` +
+          `${response.itemGain.name} (${response.itemGain.rarity})\n\n` +
+          `Klikni na tlačítko inventáře pro přidání do inventáře.`
+        )
       }
 
       // Update game state if needed

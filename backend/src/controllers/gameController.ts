@@ -119,10 +119,16 @@ export async function handleAction(req: Request, res: Response): Promise<void> {
     }
 
     const sessionId = paramsValidation.data.id
-    const { action, characterId } = bodyValidation.data
+    const { action, characterId, diceRollResult } = bodyValidation.data
 
-    // Zavolej service
-    const result = await gameService.processPlayerAction(req.user!.userId, sessionId, action, characterId)
+    // Zavolej service (s optional diceRollResult)
+    const result = await gameService.processPlayerAction(
+      req.user!.userId,
+      sessionId,
+      action,
+      characterId,
+      diceRollResult // ✅ Bug #3 fix: Předej dice roll result do service
+    )
 
     // Připrav response
     const response: PlayerActionResponse = {
@@ -130,7 +136,12 @@ export async function handleAction(req: Request, res: Response): Promise<void> {
       requiresDiceRoll: result.metadata?.requiresDiceRoll,
       diceType: result.metadata?.diceRollType,
       metadata: result.metadata,
-      atmosphere: result.atmosphere // Přidej atmosphere data
+      atmosphere: result.atmosphere, // Přidej atmosphere data
+      hpChange: result.hpChange,    // Přidej HP metadata
+      xpChange: result.xpChange,    // Přidej XP metadata
+      levelUp: result.levelUp,      // Přidej level-up metadata
+      itemGain: result.itemGain,    // Přidej item gain metadata
+      characterDied: result.characterDied // Přidej death status
     }
 
     res.status(200).json({

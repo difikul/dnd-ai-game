@@ -40,6 +40,7 @@
       <button
         @click="handleRequirementRoll"
         :disabled="isRolling"
+        data-testid="roll-dice-button"
         class="mt-4 w-full bg-primary-500 hover:bg-primary-600 text-white px-6 py-3 rounded-lg
                font-bold text-lg transition transform hover:scale-[1.02]
                disabled:opacity-50 disabled:cursor-not-allowed"
@@ -165,6 +166,7 @@
     <div
       v-if="lastRoll"
       class="mb-6 bg-dark-900 border-2 border-primary-500 rounded-lg p-6"
+      data-testid="dice-roll-result"
     >
       <!-- Kontext hodu -->
       <div v-if="requirement && requirement.skillName" class="text-center text-sm text-gray-400 mb-2">
@@ -174,7 +176,7 @@
       <!-- Celkový výsledek -->
       <div class="text-center">
         <div class="text-sm text-gray-400 mb-1">{{ lastRoll.notation }}</div>
-        <div class="text-6xl font-bold text-primary-500 mb-3 animate-fade-in">
+        <div class="text-6xl font-bold text-primary-500 mb-3 animate-fade-in" data-testid="dice-roll-total">
           {{ lastRoll.total }}
         </div>
       </div>

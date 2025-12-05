@@ -59,6 +59,10 @@ model Character {
   avatarUrl       String?
   background      String?  @db.Text
 
+  // ASI (Ability Score Improvement) System
+  pendingASI      Boolean  @default(false)  // Má hráč nevyužité ASI?
+  asiHistory      Json     @default("[]")   // Historie ASI: [{level: 4, changes: {strength: 1, dexterity: 1}}]
+
   // User ownership
   userId        String
   user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -131,7 +135,7 @@ model Item {
   character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
 
   name        String
-  type        String   // weapon, armor, potion, misc
+  type        String   // weapon, armor, potion, accessory, misc
   description String?  @db.Text
   quantity    Int      @default(1)
   equipped    Boolean  @default(false)
@@ -141,10 +145,21 @@ model Item {
   armorValue  Int?
   properties  Json?    // Special properties
 
+  // Stat bonuses from magical items
+  statBonuses Json?    // { strength: 2, acBonus: 1, hpBonus: 5 }
+  rarity      String   @default("common")  // common, uncommon, rare, very_rare, legendary
+
+  // Attunement system (D&D 5e)
+  requiresAttunement Boolean @default(false)
+  isAttuned   Boolean  @default(false)
+  // Pravidlo: Max 3 attuned items per character
+  // Bonusy z itemů s requiresAttunement se aplikují pouze pokud isAttuned = true
+
   createdAt   DateTime @default(now())
 
   @@index([characterId])
   @@index([equipped])
+  @@index([isAttuned])
 }
 
 model WorldLocation {

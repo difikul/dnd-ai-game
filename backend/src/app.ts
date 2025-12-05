@@ -6,6 +6,7 @@ import compression from 'compression'
 import authRoutes from './routes/auth.routes'
 import testRoutes from './routes/test.routes'
 import characterRoutes from './routes/character.routes'
+import itemRoutes from './routes/item.routes'
 import gameRoutes from './routes/game.routes'
 import diceRoutes from './routes/dice.routes'
 import saveRoutes from './routes/save.routes'
@@ -49,6 +50,7 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRoutes)
 app.use('/api/test', testRoutes)
 app.use('/api/characters', characterRoutes)
+app.use('/api/characters', itemRoutes) // Inventory routes nested under characters
 app.use('/api/game', gameRoutes)
 app.use('/api/dice', diceRoutes)
 app.use('/api/saves', saveRoutes)
@@ -81,7 +83,20 @@ app.get('/api', (req, res) => {
         update: 'PUT /api/characters/:id',
         delete: 'DELETE /api/characters/:id',
         modifyHP: 'POST /api/characters/:id/hp',
-        addExperience: 'POST /api/characters/:id/experience'
+        addExperience: 'POST /api/characters/:id/experience',
+        applyASI: 'POST /api/characters/:id/ability-score-improvement'
+      },
+      inventory: {
+        list: 'GET /api/characters/:characterId/inventory',
+        add: 'POST /api/characters/:characterId/inventory',
+        get: 'GET /api/characters/:characterId/inventory/:itemId',
+        update: 'PUT /api/characters/:characterId/inventory/:itemId',
+        delete: 'DELETE /api/characters/:characterId/inventory/:itemId',
+        equip: 'POST /api/characters/:characterId/inventory/:itemId/equip',
+        unequip: 'POST /api/characters/:characterId/inventory/:itemId/unequip',
+        attune: 'POST /api/characters/:characterId/inventory/:itemId/attune',
+        unattune: 'POST /api/characters/:characterId/inventory/:itemId/unattune',
+        bonuses: 'GET /api/characters/:characterId/inventory/bonuses'
       },
       game: {
         start: 'POST /api/game/start',

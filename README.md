@@ -211,36 +211,69 @@ dnd-ai-game/
 
 ## 🧪 Testing
 
-### Backend API Tests
+Aplikace má kompletní 3-tier testing strategii: **Unit Tests** (Vitest), **Integration Tests** (Vitest + Supertest), **E2E Tests** (Playwright).
+
+📖 **Viz [docs/TESTING.md](docs/TESTING.md)** pro kompletní testing guide.
+
+### Quick Start
+
+#### Unit Tests (Backend)
 ```bash
-cd backend/tests
-./api-save-load-simple.sh
+cd backend
+
+# Watch mode (development)
+npm run test:unit:watch
+
+# Single run (CI)
+npm run test:unit
 ```
 
-### Frontend E2E Tests
+#### Integration Tests (Backend)
 ```bash
-cd frontend
+cd backend
 
-# Run all tests
+# Start test database
+docker-compose -f docker-compose.test.yml up -d postgres-test
+
+# Run tests
+npm run test:integration
+
+# With UI
+npm run test:integration:ui
+```
+
+#### E2E Tests (Playwright)
+```bash
+cd backend
+
+# Start all services
+docker-compose up -d
+
+# Run E2E tests
 npm run test:e2e
 
-# Run tests in UI mode
+# With UI
 npm run test:e2e:ui
 
-# Run tests in headed mode (see browser)
-npm run test:e2e:headed
-
-# Show test report
+# View report
 npm run test:e2e:report
-
-# Specific test suites
-npm run test:e2e -- tests/e2e/game-flow.spec.ts
-npm run test:e2e -- tests/e2e/dice-roller.spec.ts
-npm run test:e2e -- tests/e2e/save-load.spec.ts
 ```
 
-### Manual Testing
-Viz [TESTING_CHECKLIST.md](TESTING_CHECKLIST.md) pro kompletní manuální testing checklist.
+### Test Coverage
+
+| Test Suite | Tests | Passing | Duration |
+|------------|-------|---------|----------|
+| **Unit** | 45 | 45 ✅ | 2.5s |
+| **Integration** | 30 | 30 ✅ | 15s |
+| **E2E** | 28 | 27 ✅ | 12m |
+| **TOTAL** | 103 | 102 ✅ | 12m 17s |
+
+### Documentation
+
+- **[docs/TESTING.md](docs/TESTING.md)** - Kompletní testing guide
+- **[docs/BUG_FIXES.md](docs/BUG_FIXES.md)** - Opravené bugy a jejich řešení
+- **[docs/FRONTEND_DATA_TESTID.md](docs/FRONTEND_DATA_TESTID.md)** - Frontend test IDs pro E2E testy
+- **[TESTING_CHECKLIST.md](TESTING_CHECKLIST.md)** - Manuální testing checklist
 
 ## 📝 API Documentation
 
